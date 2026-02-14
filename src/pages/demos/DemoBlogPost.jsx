@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
 import { loadDemoPosts } from "../../data/demoStore.js";
+import { getPath } from "../../app/paths.js";
 
 const POST_COPY = {
   es: {
@@ -35,7 +36,7 @@ export default function DemoBlogPost({ locale }) {
         <div className="card" style={{ padding: 18 }}>
           <p style={{ margin: 0, color: "var(--muted)" }}>{copy.notFound}</p>
           <div style={{ height: 12 }} />
-          <Link className="btn" to="/demos/blog">
+          <Link className="btn" to={getPath("demoBlog", locale)}>
             {copy.back}
           </Link>
         </div>
@@ -50,11 +51,11 @@ export default function DemoBlogPost({ locale }) {
         subtitle={copy.subtitle}
         theme="blog"
         right={
-          <Link className="pill" to="/demos/blog">
+          <Link className="pill" to={getPath("demoBlog", locale)}>
             {copy.back}
-        </Link>
-      }
-    >
+          </Link>
+        }
+      >
       <article className="card" style={{ padding: 18 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {post.tags.map((tag) => (

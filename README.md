@@ -1,148 +1,139 @@
-# KORA by Sela - Portfolio + Interactive Demo Lab
+# Kora by Sela - Portfolio + Interactive Demo Lab
 
-Portfolio web bilingue (ES/EN) construido con React + Vite, con una seccion de demos interactivas para mostrar capacidades reales de implementacion.
+This repository is the source code for my public portfolio website (`Kora by Sela`).
+It is both:
 
-## Objetivo del proyecto
+- a bilingual portfolio (ES/EN) with real case studies, and
+- an interactive demo lab where clients can try product-like flows.
 
-Este sitio no es solo un portafolio visual. Tambien funciona como laboratorio de demos para que potenciales clientes prueben flujos reales:
+The goal is to show not only visual design, but also execution quality: architecture, UX decisions, maintainability, and shipping discipline.
 
-- Blog CMS demo (CRUD con persistencia local)
-- Login/Auth demo (sesion persistente + dashboard protegido)
-- B2B Automation demo (escenarios ejecutables y logs)
+## What Is Included
 
-Ademas, incluye transiciones y sistema visual de marca `KORA by Sela`.
+- Main pages: Home, Projects, About, Contact.
+- Case studies:
+  - FARES
+  - ContaGO
+- Interactive demos:
+  - Blog CMS demo (local CRUD flow)
+  - Role-based auth demo (Admin/User interaction)
+  - Operations automation demo
 
-## Stack
+## Tech Stack
 
 - React 19
 - React Router 7
 - Framer Motion
-- Vite
-- CSS modular por secciones (sin framework externo)
+- Lucide React
+- Vite 7
+- ESLint 9
 
-## Scripts
+No backend is required to run this project locally.
+
+## Local Development
+
+### Requirements
+
+- Node.js 20+ (recommended)
+- npm 10+
+
+### Run Locally
 
 ```bash
-npm install
+npm ci
 npm run dev
+```
+
+App runs on Vite default local server (`http://localhost:5173`).
+
+### Build and Validate
+
+```bash
 npm run lint
 npm run build
 npm run preview
 ```
 
-## Estructura principal
+## Demo Credentials (Role Flow)
+
+Defined in `src/data/demoStore.js`:
+
+- Admin
+  - Email: `admin@korabysela.dev`
+  - Password: `kora-admin-2026`
+- User
+  - Email: `user@korabysela.dev`
+  - Password: `kora-user-2026`
+
+These credentials are intentionally demo-only and used for portfolio simulation.
+
+## Project Structure
 
 ```txt
 src/
-  App.jsx                         # Orquestador principal (layout + transiciones)
+  App.jsx
   app/
-    constants.js                  # Constantes globales de locale y duraciones
-    paths.js                      # Utilidades de rutas (ej: isDemoPath)
-    preferences.js                # Lectura inicial de tema/idioma
+    constants.js
+    paths.js
+    preferences.js
+    storage.js
     hooks/
-      useThemeState.js            # Estado de tema + persistencia
-      useLocaleState.js           # Estado de idioma + persistencia
-      useRouteScrollReset.js      # Reset de scroll por ruta
-      usePortalTransition.js      # Estado del portal entre sitio y demos
-      useRouteTransitionMeta.js   # Flags de transicion/layout
     routes/
-      AppRoutes.jsx               # Mapa centralizado de rutas
     transitions/
-      routeMotion.js              # Config de animaciones de ruta
   components/
-    background/HexBackground.jsx  # Fondo panal dinamico con hover sutil
-    demo/DemoFloatingNav.jsx      # Pill persistente de navegacion demo
-    transitions/PortalTransition.jsx
+    background/
+    demo/
+    transitions/
+  data/
   pages/
-    ...                           # Paginas normales + demos
+    demos/
+  styles/
 ```
 
-## Rutas
+## Architecture Notes
 
-### Sitio principal
+- Routing is centralized in `src/app/routes/AppRoutes.jsx` using localized path helpers from `src/app/paths.js`.
+- Theme and locale persistence are managed with safe storage wrappers (`src/app/storage.js`) to avoid browser storage edge-case crashes.
+- Demo modules are lazy-loaded to keep the initial bundle focused on primary portfolio pages.
+- Demo data persistence is local-only (`localStorage`) and scoped for simulation purposes.
 
-- `/`
-- `/proyectos`, `/projects`
-- `/sobre-mi`, `/about`
-- `/contacto`, `/contact`
-- `/caso/fares`, `/case/fares`
+## Security and Privacy
 
-### Demo Lab
+This repository is prepared to be public:
 
-- `/demos`
-- `/demos/blog`
-- `/demos/blog/:slug`
-- `/demos/login`
-- `/demos/dashboard`
-- `/demos/automation`
+- No `.env` secrets are required or committed.
+- No production credentials/tokens are present.
+- A restrictive CSP is declared in `index.html`.
+- GitHub Actions in deploy workflow are pinned to immutable SHAs.
+- External links that open new tabs use safe `rel` attributes.
 
-## Credenciales demo (Auth)
-
-Definidas en `src/data/demoStore.js`:
-
-- Email: `demo@korabysela.dev`
-- Password: `kora2026`
-
-## Como funciona la modularizacion
-
-### 1) Estado global de UI
-
-`App.jsx` no contiene logica pesada de negocio. Se apoya en hooks dedicados:
-
-- `useThemeState`: aplica `data-theme` y guarda en `localStorage`
-- `useLocaleState`: aplica `lang` y guarda locale
-- `usePortalTransition`: controla cuando mostrar overlay portal
-- `useRouteTransitionMeta`: flags derivados para animaciones y layout
-
-### 2) Rutas separadas
-
-`AppRoutes.jsx` centraliza todas las rutas en un solo arreglo (`ROUTE_DEFINITIONS`), facilitando agregar/quitar paginas sin tocar el core de App.
-
-### 3) Transiciones encapsuladas
-
-- `routeMotion.js` concentra los presets de animacion por tipo de navegacion.
-- `PortalTransition.jsx` controla la animacion principal al cruzar entre sitio normal y demos.
-
-## Persistencia local (localStorage)
-
-Claves usadas:
-
-- `theme`
-- `locale`
-- `kora_demo_blog_posts_v1`
-- `kora_demo_auth_session_v1`
-
-## Guia rapida para extender
-
-### Agregar nueva pagina normal
-
-1. Crear pagina en `src/pages/`
-2. Agregar ruta en `src/app/routes/AppRoutes.jsx`
-3. Agregar link en `Navbar` si aplica
-
-### Agregar nuevo demo
-
-1. Crear pagina en `src/pages/demos/`
-2. Agregar ruta en `AppRoutes.jsx`
-3. Agregar item en `DemoFloatingNav.jsx`
-4. (Opcional) asignar estilo propio en `DemoLayout`/`theme.css`
-
-### Ajustar animaciones
-
-- Portal entre sitio y demos: `usePortalTransition.js` + `PortalTransition.jsx`
-- Transicion de rutas: `routeMotion.js`
-
-## Notas de mantenimiento
-
-- Si cambias los nombres de rutas demo, revisa tambien `isDemoPath` y el active state de `DemoFloatingNav`.
-- Si cambias variables de color global, revisa tambien las variables de hex background (`--hex-*`).
-- Si percibes glitches visuales en navegacion, limpia cache del navegador (`Ctrl+Shift+R`) y vuelve a correr `npm run build`.
-
-## Calidad minima antes de deploy
+Additional verification used during maintenance:
 
 ```bash
-npm run lint
-npm run build
+npm audit --omit=dev
 ```
 
-Si ambos pasan, el estado es apto para publicar.
+## Deploy
+
+This project is configured for GitHub Pages deploy via:
+
+- `.github/workflows/deploy-pages.yml`
+
+Workflow builds with Vite, publishes `dist/`, and includes SPA fallback (`404.html`).
+
+## Optional Feature Flags
+
+Some experiments can be kept in code but hidden from production views. Example:
+
+- `PHYSICS_LAYER_UNDER_CONSTRUCTION` in `src/App.jsx`
+
+This allows preserving in-progress work without deleting implementation.
+
+## Why This Repo Matters
+
+For clients and collaborators, this codebase demonstrates:
+
+- production-oriented frontend architecture,
+- bilingual UX handling,
+- realistic interactive demos for business workflows,
+- attention to performance, maintainability, and delivery quality.

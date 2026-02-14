@@ -12,6 +12,9 @@ import Footer from "./components/Footer.jsx";
 import PortalTransition from "./components/transitions/PortalTransition.jsx";
 import DemoFloatingNav from "./components/demo/DemoFloatingNav.jsx";
 import HexBackground from "./components/background/HexBackground.jsx";
+import PhysicsShapesBox from "./components/PhysicsShapesBox.jsx";
+
+const PHYSICS_LAYER_UNDER_CONSTRUCTION = true;
 
 export default function App() {
   const location = useLocation();
@@ -25,7 +28,6 @@ export default function App() {
     isDemoSection,
     isDemoToDemo,
     isCrossingDemoBoundary,
-    isSoftDemoTransition,
     appBottomPadding,
     shouldShowDemoFloatingNav,
   } = useRouteTransitionMeta(location.pathname, previousPath);
@@ -39,25 +41,32 @@ export default function App() {
     isDemoToDemo,
   });
 
+  const showPhysicsLayer = location.pathname === "/" && !PHYSICS_LAYER_UNDER_CONSTRUCTION;
+
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: appBottomPadding }}>
+    <div style={{ minHeight: "100dvh", paddingBottom: appBottomPadding, display: "flex", flexDirection: "column" }}>
       <HexBackground />
       <Navbar theme={theme} setTheme={setTheme} locale={locale} setLocale={setLocale} />
 
-      <AnimatePresence mode="wait" initial={false}>
-        <Motion.div
-          className={isSoftDemoTransition ? "demo-route-sheen" : undefined}
-          key={location.pathname}
-          initial={routeMotion.initial}
-          animate={routeMotion.animate}
-          exit={routeMotion.exit}
-          transition={routeMotion.transition}
-        >
-          <div key={locale} className="locale-text-switch">
-            <AppRoutes locale={locale} location={location} />
-          </div>
-        </Motion.div>
-      </AnimatePresence>
+      <main style={{ position: "relative", flex: 1 }}>
+        {showPhysicsLayer ? <PhysicsShapesBox variant="layer" /> : null}
+
+        <div style={{ position: "relative", zIndex: showPhysicsLayer ? 2 : 1 }}>
+          <AnimatePresence mode="wait" initial={false}>
+            <Motion.div
+              key={location.pathname}
+              initial={routeMotion.initial}
+              animate={routeMotion.animate}
+              exit={routeMotion.exit}
+              transition={routeMotion.transition}
+            >
+              <div key={locale} className="locale-text-switch">
+                <AppRoutes locale={locale} location={location} />
+              </div>
+            </Motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
 
       <PortalTransition
         active={portalFx.active}
@@ -66,7 +75,7 @@ export default function App() {
         reducedMotion={prefersReducedMotion}
       />
 
-      <DemoFloatingNav locale={locale} visible={shouldShowDemoFloatingNav} />
+      <DemoFloatingNav locale={locale} visible={shouldShowDemoFloatingNav} mode={theme} />
 
       <Footer locale={locale} />
     </div>

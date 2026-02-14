@@ -1,7 +1,8 @@
 import { useCallback, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import ThemeToggle from "./ThemeToggle.jsx";
 import koraLogo from "../assets/brand/kora-logo.png";
+import { getLocalizedPath, getPath } from "../app/paths.js";
 
 const linkStyle = ({ isActive }) => ({
   textDecoration: "none",
@@ -11,21 +12,6 @@ const linkStyle = ({ isActive }) => ({
     ? "color-mix(in srgb, var(--accent-soft) 45%, var(--bg-elev))"
     : "color-mix(in srgb, var(--bg-elev) 92%, transparent)",
 });
-
-const ROUTES = {
-  es: {
-    demos: "/demos",
-    projects: "/proyectos",
-    about: "/sobre-mi",
-    contact: "/contacto",
-  },
-  en: {
-    demos: "/demos",
-    projects: "/projects",
-    about: "/about",
-    contact: "/contact",
-  },
-};
 
 const NAV_COPY = {
   es: {
@@ -48,8 +34,14 @@ const NAV_COPY = {
 
 export default function Navbar({ theme, setTheme, locale, setLocale }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const copy = NAV_COPY[locale] ?? NAV_COPY.es;
-  const routes = ROUTES[locale] ?? ROUTES.es;
+  const routes = {
+    demos: getPath("demos", locale),
+    projects: getPath("projects", locale),
+    about: getPath("about", locale),
+    contact: getPath("contact", locale),
+  };
 
   const isTypingContext = (target) => {
     if (!(target instanceof HTMLElement)) return false;
@@ -64,8 +56,14 @@ export default function Navbar({ theme, setTheme, locale, setLocale }) {
 
   const toggleLocale = useCallback(() => {
     const nextLocale = locale === "es" ? "en" : "es";
+    const nextPathname = getLocalizedPath(location.pathname, nextLocale);
+
     setLocale(nextLocale);
-  }, [locale, setLocale]);
+
+    if (nextPathname !== location.pathname) {
+      navigate(`${nextPathname}${location.search}${location.hash}`, { replace: true });
+    }
+  }, [locale, location.hash, location.pathname, location.search, navigate, setLocale]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -88,13 +86,13 @@ export default function Navbar({ theme, setTheme, locale, setLocale }) {
         toggleLocale();
       }
       if (event.key === "Escape") {
-        navigate("/");
+        navigate(getPath("home", locale));
       }
     };
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [navigate, setTheme, toggleLocale]);
+  }, [locale, navigate, setTheme, toggleLocale]);
 
   return (
     <div
@@ -127,11 +125,11 @@ export default function Navbar({ theme, setTheme, locale, setLocale }) {
             alignItems: "center",
             lineHeight: 1,
           }}
-          aria-label="KORA by Sela"
+          aria-label="Kora by Sela"
         >
           <img
             src={koraLogo}
-            alt="KORA by Sela"
+            alt="Kora by Sela"
             style={{
               display: "block",
               width: "auto",

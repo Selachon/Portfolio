@@ -1,3 +1,5 @@
+import { getPath } from "../app/paths.js";
+
 const projects = [
   {
     slug: "fares",
@@ -15,8 +17,14 @@ const projects = [
       en: ["Node.js", "React (Vite)", "Production", "Maintenance", "Operations"],
     },
     links: {
-      es: [{ label: "Caso de estudio", href: "/caso/fares", external: false }],
-      en: [{ label: "Case study", href: "/case/fares", external: false }],
+      es: [
+        { label: "Caso de estudio", href: getPath("caseFares", "es"), external: false },
+        { label: "Sitio en vivo", href: "https://faresbcs.com/", external: true },
+      ],
+      en: [
+        { label: "Case study", href: getPath("caseFares", "en"), external: false },
+        { label: "Live site", href: "https://faresbcs.com/", external: true },
+      ],
     },
   },
   {
@@ -35,8 +43,14 @@ const projects = [
       en: ["Frontend", "Commercial content", "Basic SEO", "In progress"],
     },
     links: {
-      es: [{ label: "Consultar disponibilidad", href: "/contacto", external: false }],
-      en: [{ label: "Check availability", href: "/contact", external: false }],
+      es: [
+        { label: "Caso de estudio", href: getPath("caseContaGo", "es"), external: false },
+        { label: "Sitio en vivo", href: "https://contago.com.co/", external: true },
+      ],
+      en: [
+        { label: "Case study", href: getPath("caseContaGo", "en"), external: false },
+        { label: "Live site", href: "https://contago.com.co/", external: true },
+      ],
     },
   },
   {
@@ -55,8 +69,8 @@ const projects = [
       en: ["Node.js", "Events", "APIs", "Automation"],
     },
     links: {
-      es: [{ label: "Contacto", href: "/contacto", external: false }],
-      en: [{ label: "Contact", href: "/contact", external: false }],
+      es: [{ label: "Contacto", href: getPath("contact", "es"), external: false }],
+      en: [{ label: "Contact", href: getPath("contact", "en"), external: false }],
     },
   },
   {
@@ -75,8 +89,8 @@ const projects = [
       en: ["Node.js", "Scripting", "Productivity"],
     },
     links: {
-      es: [{ label: "Contacto", href: "/contacto", external: false }],
-      en: [{ label: "Contact", href: "/contact", external: false }],
+      es: [{ label: "Contacto", href: getPath("contact", "es"), external: false }],
+      en: [{ label: "Contact", href: getPath("contact", "en"), external: false }],
     },
   },
 ];

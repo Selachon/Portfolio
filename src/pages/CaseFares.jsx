@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import PageShell from "../components/PageShell.jsx";
+import { getPath } from "../app/paths.js";
 
 function Block({ title, children }) {
   return (
@@ -41,17 +42,6 @@ function BulletList({ items }) {
     </ul>
   );
 }
-
-const CASE_PATHS = {
-  es: {
-    back: "/proyectos",
-    contact: "/contacto",
-  },
-  en: {
-    back: "/projects",
-    contact: "/contact",
-  },
-};
 
 const CASE_COPY = {
   es: {
@@ -216,7 +206,10 @@ const CASE_COPY = {
 
 export default function CaseFares({ locale }) {
   const copy = CASE_COPY[locale] ?? CASE_COPY.es;
-  const paths = CASE_PATHS[locale] ?? CASE_PATHS.es;
+  const paths = {
+    back: getPath("projects", locale),
+    contact: getPath("contact", locale),
+  };
 
   return (
     <PageShell

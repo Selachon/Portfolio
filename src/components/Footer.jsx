@@ -33,7 +33,7 @@ export default function Footer({ locale }) {
           fontSize: 13,
         }}
       >
-        <span>© {new Date().getFullYear()} KORA by Sela</span>
+        <span>© {new Date().getFullYear()} Kora by Sela</span>
         <span>{line}</span>
       </div>
     </footer>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { getPath } from "../../app/paths.js";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
 import {
   createClientId,
@@ -120,7 +121,7 @@ function mapFormToPost(form, existing, posts, locale, id) {
     content: form.content.trim(),
     tags,
     status: form.status,
-    author: existing?.author ?? "KORA by Sela",
+    author: existing?.author ?? "Kora by Sela",
     createdAt: existing?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     locale,
@@ -139,6 +140,7 @@ function postToForm(post) {
 
 export default function DemoBlog({ locale }) {
   const copy = BLOG_COPY[locale] ?? BLOG_COPY.es;
+  const blogPath = getPath("demoBlog", locale);
   const [posts, setPosts] = useState(() => loadDemoPosts(locale));
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -147,8 +149,8 @@ export default function DemoBlog({ locale }) {
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    saveDemoPosts(posts);
-  }, [posts]);
+    saveDemoPosts(posts, locale);
+  }, [posts, locale]);
 
   const visiblePosts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -219,49 +221,8 @@ export default function DemoBlog({ locale }) {
 
   return (
     <DemoLayout locale={locale} title={copy.title} subtitle={copy.subtitle} theme="blog">
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 10 }}>
-          <div style={{ gridColumn: "span 12" }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.searchLabel}</span>
-              <input
-                className="demo-input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={copy.searchPlaceholder}
-              />
-            </label>
-          </div>
-
-          <div style={{ gridColumn: "span 12" }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.filterLabel}</span>
-              <select className="demo-input" value={filter} onChange={(event) => setFilter(event.target.value)}>
-                <option value="all">{copy.filterAll}</option>
-                <option value="published">{copy.filterPublished}</option>
-                <option value="draft">{copy.filterDraft}</option>
-              </select>
-            </label>
-          </div>
-
-          <div style={{ gridColumn: "span 12" }}>
-            <button type="button" className="btn btn-ghost" onClick={handleResetSeed}>
-              {copy.resetSeed}
-            </button>
-          </div>
-        </div>
-
-        {feedback ? (
-          <p style={{ margin: "10px 0 0", color: "var(--muted)" }}>
-            {feedback}
-          </p>
-        ) : null}
-      </div>
-
-      <div style={{ height: 14 }} />
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 14 }}>
-        <section className="card" style={{ gridColumn: "span 12", padding: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14, alignItems: "start" }}>
+        <section className="card" style={{ padding: 18 }}>
           <h2 style={{ margin: 0, fontSize: "clamp(1.2rem, 2.7vw, 1.45rem)" }}>
             {editingId ? copy.editorTitleEdit : copy.editorTitleCreate}
           </h2>
@@ -330,68 +291,105 @@ export default function DemoBlog({ locale }) {
           </form>
         </section>
 
-        <section className="card" style={{ gridColumn: "span 12", padding: 18 }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(1.2rem, 2.7vw, 1.45rem)" }}>{copy.listTitle}</h2>
-          <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>{copy.persistNote}</p>
-
-          <div style={{ height: 10 }} />
-
-          {visiblePosts.length === 0 ? (
-            <div className="pill" style={{ color: "var(--muted)" }}>
-              {copy.empty}
-            </div>
-          ) : (
+        <aside style={{ display: "grid", gap: 14 }}>
+          <section className="card" style={{ padding: 16 }}>
             <div style={{ display: "grid", gap: 10 }}>
-              {visiblePosts.map((post) => (
-                <article key={post.id} className="card" style={{ padding: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-                    <div>
-                      <div style={{ fontWeight: 760 }}>{post.title}</div>
-                      <p style={{ margin: "6px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>{post.excerpt}</p>
-                    </div>
-                    <span
-                      className="pill"
-                      style={{
-                        padding: "6px 10px",
-                        fontSize: 12,
-                        borderColor:
-                          post.status === "published"
-                            ? "color-mix(in srgb, #22c55e 34%, var(--border))"
-                            : "color-mix(in srgb, #f59e0b 34%, var(--border))",
-                      }}
-                    >
-                      {post.status}
-                    </span>
-                  </div>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>{copy.searchLabel}</span>
+                <input
+                  className="demo-input"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={copy.searchPlaceholder}
+                />
+              </label>
 
-                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {post.tags.map((tag) => (
-                      <span key={`${post.id}-${tag}`} className="pill" style={{ padding: "6px 10px", fontSize: 12 }}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+              <label style={{ display: "grid", gap: 6 }}>
+                <span style={{ fontWeight: 600 }}>{copy.filterLabel}</span>
+                <select className="demo-input" value={filter} onChange={(event) => setFilter(event.target.value)}>
+                  <option value="all">{copy.filterAll}</option>
+                  <option value="published">{copy.filterPublished}</option>
+                  <option value="draft">{copy.filterDraft}</option>
+                </select>
+              </label>
 
-                  <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 13 }}>
-                    {copy.updatedAt}: {formatDate(post.updatedAt, locale)}
-                  </div>
-
-                  <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Link className="btn btn-ghost" to={`/demos/blog/${post.slug}`}>
-                      {copy.openPost}
-                    </Link>
-                    <button type="button" className="btn btn-ghost" onClick={() => handleEdit(post)}>
-                      {copy.editPost}
-                    </button>
-                    <button type="button" className="btn btn-ghost" onClick={() => handleDelete(post.id)}>
-                      {copy.deletePost}
-                    </button>
-                  </div>
-                </article>
-              ))}
+              <div>
+                <button type="button" className="btn btn-ghost" onClick={handleResetSeed}>
+                  {copy.resetSeed}
+                </button>
+              </div>
             </div>
-          )}
-        </section>
+
+            {feedback ? (
+              <p style={{ margin: "10px 0 0", color: "var(--muted)" }}>
+                {feedback}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="card" style={{ padding: 18 }}>
+            <h2 style={{ margin: 0, fontSize: "clamp(1.2rem, 2.7vw, 1.45rem)" }}>{copy.listTitle}</h2>
+            <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>{copy.persistNote}</p>
+
+            <div style={{ height: 10 }} />
+
+            {visiblePosts.length === 0 ? (
+              <div className="pill" style={{ color: "var(--muted)" }}>
+                {copy.empty}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {visiblePosts.map((post) => (
+                  <article key={post.id} className="card" style={{ padding: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
+                      <div>
+                        <div style={{ fontWeight: 760 }}>{post.title}</div>
+                        <p style={{ margin: "6px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>{post.excerpt}</p>
+                      </div>
+                      <span
+                        className="pill"
+                        style={{
+                          padding: "6px 10px",
+                          fontSize: 12,
+                          borderColor:
+                            post.status === "published"
+                              ? "color-mix(in srgb, var(--success) 34%, var(--border))"
+                              : "color-mix(in srgb, var(--warning) 34%, var(--border))",
+                        }}
+                      >
+                        {post.status}
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {post.tags.map((tag) => (
+                        <span key={`${post.id}-${tag}`} className="pill" style={{ padding: "6px 10px", fontSize: 12 }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 13 }}>
+                      {copy.updatedAt}: {formatDate(post.updatedAt, locale)}
+                    </div>
+
+                    <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Link className="btn btn-ghost" to={`${blogPath}/${post.slug}`}>
+                        {copy.openPost}
+                      </Link>
+                      <button type="button" className="btn btn-ghost" onClick={() => handleEdit(post)}>
+                        {copy.editPost}
+                      </button>
+                      <button type="button" className="btn btn-ghost" onClick={() => handleDelete(post.id)}>
+                        {copy.deletePost}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        </aside>
       </div>
     </DemoLayout>
   );

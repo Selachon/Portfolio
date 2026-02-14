@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getInitialLocale } from "../preferences.js";
+import { readStorageItem, writeStorageItem } from "../storage.js";
 
 // Locale controls visible copy and the document lang attribute for accessibility/SEO.
 export function useLocaleState() {
@@ -8,8 +9,8 @@ export function useLocaleState() {
   useEffect(() => {
     document.documentElement.lang = locale;
 
-    if (localStorage.getItem("locale") !== locale) {
-      localStorage.setItem("locale", locale);
+    if (readStorageItem("locale") !== locale) {
+      writeStorageItem("locale", locale);
     }
   }, [locale]);
 

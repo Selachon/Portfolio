@@ -10,57 +10,24 @@ export function getRouteMotionConfig({
     ? { opacity: 0 }
     : isDemoSection
       ? isCrossingDemoBoundary
-        ? {
-            opacity: 1,
-            clipPath: "circle(10% at 50% 50%)",
-            filter: "blur(10px) saturate(1.08)",
-          }
-        : {
-            opacity: 0.92,
-            y: 6,
-            scale: 0.998,
-            filter: "blur(2px) saturate(1.05)",
-          }
-      : { opacity: 0, y: 18, scale: 0.996 };
+        ? { opacity: 0.76 }
+        : { opacity: 0.88 }
+      : { opacity: 0 };
 
-  const animate = prefersReducedMotion
-    ? { opacity: 1 }
-    : isDemoSection
-      ? isCrossingDemoBoundary
-        ? {
-            opacity: 1,
-            clipPath: "circle(150% at 50% 50%)",
-            filter: "blur(0px) saturate(1)",
-          }
-        : {
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            filter: "blur(0px) saturate(1)",
-          }
-      : { opacity: 1, y: 0, scale: 1 };
+  const animate = { opacity: 1 };
 
   const exit = prefersReducedMotion
     ? { opacity: 0 }
     : isDemoSection
       ? isCrossingDemoBoundary
-        ? {
-            opacity: 1,
-            clipPath: "circle(10% at 50% 50%)",
-            filter: "blur(8px) saturate(1.08)",
-          }
-        : {
-            opacity: 0.92,
-            y: -6,
-            scale: 0.998,
-            filter: "blur(2px) saturate(1.05)",
-          }
-      : { opacity: 0, y: -12, scale: 0.996 };
+        ? { opacity: 0.64 }
+        : { opacity: 0.84 }
+      : { opacity: 0 };
 
   const transition = prefersReducedMotion
-    ? { duration: 0.15 }
+    ? { duration: 0.1 }
     : {
-        duration: isDemoSection ? (isCrossingDemoBoundary ? 0.8 : isDemoToDemo ? 0.3 : 0.24) : 0.34,
+        duration: isDemoSection ? (isCrossingDemoBoundary ? 0.22 : isDemoToDemo ? 0.14 : 0.18) : 0.2,
         ease: [0.22, 1, 0.36, 1],
       };
 

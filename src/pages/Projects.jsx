@@ -6,7 +6,7 @@ const PROJECTS_COPY = {
   es: {
     title: "Proyectos",
     subtitle:
-      "Casos reales y laboratorio técnico. En KORA priorizo calidad operativa y contexto de negocio, no volumen sin sentido.",
+      "Casos reales y laboratorio técnico. En Kora priorizo calidad operativa y contexto de negocio, no volumen sin sentido.",
     featured: "Destacados",
     lab: "Laboratorio",
     labText:
@@ -15,7 +15,7 @@ const PROJECTS_COPY = {
   en: {
     title: "Projects",
     subtitle:
-      "Real cases plus technical lab work. At KORA, I prioritize operational quality and business context over empty project quantity.",
+      "Real cases plus technical lab work. At Kora, I prioritize operational quality and business context over empty project quantity.",
     featured: "Featured",
     lab: "Lab",
     labText:

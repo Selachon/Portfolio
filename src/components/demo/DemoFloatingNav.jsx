@@ -26,44 +26,92 @@ const DEMO_NAV = {
 
 const NAV_THEME = {
   hub: {
-    border: "rgba(132, 156, 210, 0.42)",
-    bg: "rgba(10, 18, 38, 0.82)",
-    badge: "#d6e3ff",
-    muted: "#d6e3ff",
-    strong: "#ffffff",
-    activeBorder: "rgba(156, 140, 255, 0.84)",
-    activeBg: "rgba(156, 140, 255, 0.3)",
-    shadow: "0 12px 34px rgba(3, 8, 22, 0.42)",
+    light: {
+      border: "rgba(92, 118, 178, 0.38)",
+      bg: "rgba(242, 247, 255, 0.92)",
+      badge: "#395280",
+      muted: "#395280",
+      strong: "#162746",
+      activeBorder: "rgba(95, 111, 255, 0.8)",
+      activeBg: "rgba(95, 111, 255, 0.18)",
+      shadow: "0 12px 28px rgba(62, 89, 140, 0.18)",
+    },
+    dark: {
+      border: "rgba(132, 156, 210, 0.42)",
+      bg: "rgba(10, 18, 38, 0.82)",
+      badge: "#d6e3ff",
+      muted: "#d6e3ff",
+      strong: "#ffffff",
+      activeBorder: "rgba(156, 140, 255, 0.84)",
+      activeBg: "rgba(156, 140, 255, 0.3)",
+      shadow: "0 12px 34px rgba(3, 8, 22, 0.42)",
+    },
   },
   blog: {
-    border: "rgba(97, 78, 65, 0.36)",
-    bg: "rgba(255, 246, 236, 0.9)",
-    badge: "#5f4a3e",
-    muted: "#5f4a3e",
-    strong: "#2f251f",
-    activeBorder: "rgba(159, 90, 43, 0.8)",
-    activeBg: "rgba(159, 90, 43, 0.2)",
-    shadow: "0 12px 30px rgba(67, 43, 26, 0.2)",
+    light: {
+      border: "rgba(97, 78, 65, 0.36)",
+      bg: "rgba(255, 246, 236, 0.9)",
+      badge: "#5f4a3e",
+      muted: "#5f4a3e",
+      strong: "#2f251f",
+      activeBorder: "rgba(159, 90, 43, 0.8)",
+      activeBg: "rgba(159, 90, 43, 0.2)",
+      shadow: "0 12px 30px rgba(67, 43, 26, 0.2)",
+    },
+    dark: {
+      border: "rgba(214, 167, 130, 0.36)",
+      bg: "rgba(36, 26, 20, 0.9)",
+      badge: "#e4cab4",
+      muted: "#e4cab4",
+      strong: "#fff4e8",
+      activeBorder: "rgba(240, 166, 111, 0.8)",
+      activeBg: "rgba(240, 166, 111, 0.22)",
+      shadow: "0 12px 30px rgba(16, 11, 7, 0.42)",
+    },
   },
   auth: {
-    border: "rgba(94, 139, 255, 0.44)",
-    bg: "rgba(8, 16, 36, 0.88)",
-    badge: "#d1dbff",
-    muted: "#d1dbff",
-    strong: "#ffffff",
-    activeBorder: "rgba(45, 212, 191, 0.85)",
-    activeBg: "rgba(45, 212, 191, 0.2)",
-    shadow: "0 12px 34px rgba(3, 8, 22, 0.44)",
+    light: {
+      border: "rgba(87, 120, 198, 0.4)",
+      bg: "rgba(244, 248, 255, 0.93)",
+      badge: "#334e7a",
+      muted: "#334e7a",
+      strong: "#132549",
+      activeBorder: "rgba(14, 165, 160, 0.78)",
+      activeBg: "rgba(14, 165, 160, 0.18)",
+      shadow: "0 12px 30px rgba(56, 88, 144, 0.2)",
+    },
+    dark: {
+      border: "rgba(94, 139, 255, 0.44)",
+      bg: "rgba(8, 16, 36, 0.88)",
+      badge: "#d1dbff",
+      muted: "#d1dbff",
+      strong: "#ffffff",
+      activeBorder: "rgba(45, 212, 191, 0.85)",
+      activeBg: "rgba(45, 212, 191, 0.2)",
+      shadow: "0 12px 34px rgba(3, 8, 22, 0.44)",
+    },
   },
   automation: {
-    border: "rgba(74, 189, 154, 0.43)",
-    bg: "rgba(6, 19, 22, 0.9)",
-    badge: "#c8f5df",
-    muted: "#c8f5df",
-    strong: "#eafff4",
-    activeBorder: "rgba(52, 211, 153, 0.82)",
-    activeBg: "rgba(52, 211, 153, 0.22)",
-    shadow: "0 12px 34px rgba(2, 10, 8, 0.46)",
+    light: {
+      border: "rgba(50, 146, 117, 0.4)",
+      bg: "rgba(241, 252, 247, 0.93)",
+      badge: "#2f5f4f",
+      muted: "#2f5f4f",
+      strong: "#12332a",
+      activeBorder: "rgba(15, 159, 110, 0.8)",
+      activeBg: "rgba(15, 159, 110, 0.18)",
+      shadow: "0 12px 28px rgba(42, 111, 88, 0.2)",
+    },
+    dark: {
+      border: "rgba(74, 189, 154, 0.43)",
+      bg: "rgba(6, 19, 22, 0.9)",
+      badge: "#c8f5df",
+      muted: "#c8f5df",
+      strong: "#eafff4",
+      activeBorder: "rgba(52, 211, 153, 0.82)",
+      activeBg: "rgba(52, 211, 153, 0.22)",
+      shadow: "0 12px 34px rgba(2, 10, 8, 0.46)",
+    },
   },
 };
 
@@ -97,12 +145,14 @@ function demoLinkStyle(pathname, targetPath) {
   };
 }
 
-export default function DemoFloatingNav({ locale, visible }) {
+export default function DemoFloatingNav({ locale, visible, mode = "light" }) {
   const location = useLocation();
   const copy = DEMO_NAV[locale] ?? DEMO_NAV.es;
   const hasDemoSession = Boolean(loadDemoSession());
   const themeName = getThemeByPath(location.pathname);
-  const theme = NAV_THEME[themeName] ?? NAV_THEME.hub;
+  const modeName = mode === "dark" ? "dark" : "light";
+  const themePack = NAV_THEME[themeName] ?? NAV_THEME.hub;
+  const theme = themePack[modeName] ?? themePack.light;
 
   return (
     <nav

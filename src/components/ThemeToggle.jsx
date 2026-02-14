@@ -27,7 +27,7 @@ export default function ThemeToggle({ theme, setTheme, locale }) {
         borderRadius: 999,
       }}
     >
-      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+      {isDark ? <Moon size={18} /> : <Sun size={18} />}
     </button>
   );
 }

@@ -1,41 +1,41 @@
 const DEMO_BRANDS = {
   hub: {
     es: {
-      label: "KORA Demo Nexus",
-      tagline: "Muestras interactivas de producto bajo KORA by Sela",
+      label: "Kora Demo Nexus",
+      tagline: "Muestras interactivas de producto bajo Kora by Sela",
     },
     en: {
-      label: "KORA Demo Nexus",
-      tagline: "Interactive product showcases under KORA by Sela",
+      label: "Kora Demo Nexus",
+      tagline: "Interactive product showcases under Kora by Sela",
     },
   },
   blog: {
     es: {
-      label: "KORA Editorial Lab",
+      label: "Kora Editorial Lab",
       tagline: "Demo CMS con estética de publicación real",
     },
     en: {
-      label: "KORA Editorial Lab",
+      label: "Kora Editorial Lab",
       tagline: "CMS demo with real publishing aesthetics",
     },
   },
   auth: {
     es: {
-      label: "KORA Access Vault",
+      label: "Kora Access Vault",
       tagline: "Flujos de autenticación y sesión con enfoque de seguridad",
     },
     en: {
-      label: "KORA Access Vault",
+      label: "Kora Access Vault",
       tagline: "Authentication and session flows with a security-first focus",
     },
   },
   automation: {
     es: {
-      label: "KORA Flow Command",
+      label: "Kora Flow Command",
       tagline: "Orquestación B2B con trazabilidad y ejecución por eventos",
     },
     en: {
-      label: "KORA Flow Command",
+      label: "Kora Flow Command",
       tagline: "B2B orchestration with traceability and event-driven execution",
     },
   },
@@ -53,7 +53,7 @@ export default function DemoLayout({ locale, title, subtitle, right, children, t
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <span className={`demo-brandmark demo-brandmark--${theme}`} aria-hidden="true" />
               <div>
-                <p className="demo-brandbar__eyebrow">KORA by Sela</p>
+                <p className="demo-brandbar__eyebrow">Kora by Sela</p>
                 <p className="demo-brandbar__title">{brand.label}</p>
               </div>
             </div>
