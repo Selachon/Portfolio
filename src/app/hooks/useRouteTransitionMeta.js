@@ -15,7 +15,6 @@ export function useRouteTransitionMeta(pathname, previousPath) {
     wasDemoSection,
     isDemoToDemo,
     isCrossingDemoBoundary,
-    isSoftDemoTransition: isDemoSection && !isCrossingDemoBoundary,
     appBottomPadding: isDemoSection ? "0px" : "clamp(96px, 12vh, 132px)",
     shouldShowDemoFloatingNav: isDemoSection || wasDemoSection,
   };

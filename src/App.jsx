@@ -12,10 +12,6 @@ import Footer from "./components/Footer.jsx";
 import PortalTransition from "./components/transitions/PortalTransition.jsx";
 import DemoFloatingNav from "./components/demo/DemoFloatingNav.jsx";
 import HexBackground from "./components/background/HexBackground.jsx";
-import PhysicsShapesBox from "./components/PhysicsShapesBox.jsx";
-
-const PHYSICS_LAYER_UNDER_CONSTRUCTION = true;
-
 export default function App() {
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
@@ -41,17 +37,13 @@ export default function App() {
     isDemoToDemo,
   });
 
-  const showPhysicsLayer = location.pathname === "/" && !PHYSICS_LAYER_UNDER_CONSTRUCTION;
-
   return (
     <div style={{ minHeight: "100dvh", paddingBottom: appBottomPadding, display: "flex", flexDirection: "column" }}>
       <HexBackground />
       <Navbar theme={theme} setTheme={setTheme} locale={locale} setLocale={setLocale} />
 
       <main style={{ position: "relative", flex: 1 }}>
-        {showPhysicsLayer ? <PhysicsShapesBox variant="layer" /> : null}
-
-        <div style={{ position: "relative", zIndex: showPhysicsLayer ? 2 : 1 }}>
+        <div style={{ position: "relative", zIndex: 1 }}>
           <AnimatePresence mode="wait" initial={false}>
             <Motion.div
               key={location.pathname}

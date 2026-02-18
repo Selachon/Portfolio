@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
+import { getPath } from "../../app/paths.js";
 
 const HUB_COPY = {
   es: {
@@ -12,7 +13,7 @@ const HUB_COPY = {
         text:
           "Publica, edita y borra posts de prueba con persistencia local. Incluye estado borrador/publicado y vista detalle.",
         bullets: ["CRUD completo", "Persistencia localStorage", "Vista de post por slug"],
-        to: "/demos/blog",
+        routeKey: "demoBlog",
         cta: "Abrir blog demo",
       },
       {
@@ -20,7 +21,7 @@ const HUB_COPY = {
         text:
           "Flujo de acceso con sesión persistente, ruta protegida y control de logout para evaluar experiencia y estructura.",
         bullets: ["Login usable", "Sesión persistente", "Dashboard protegido"],
-        to: "/demos/login",
+        routeKey: "demoLogin",
         cta: "Abrir auth demo",
       },
       {
@@ -28,7 +29,7 @@ const HUB_COPY = {
         text:
           "Simula automatizaciones reales de negocio con ejecución por pasos, validaciones y trazabilidad completa de logs.",
         bullets: ["Escenarios ejecutables", "Timeline de eventos", "Resultado estructurado"],
-        to: "/demos/automation",
+        routeKey: "demoAutomation",
         cta: "Abrir automation lab",
       },
     ],
@@ -43,7 +44,7 @@ const HUB_COPY = {
         text:
           "Create, edit, and delete sample posts with local persistence. Includes draft/published states and post detail pages.",
         bullets: ["Full CRUD", "localStorage persistence", "Post detail by slug"],
-        to: "/demos/blog",
+        routeKey: "demoBlog",
         cta: "Open blog demo",
       },
       {
@@ -51,7 +52,7 @@ const HUB_COPY = {
         text:
           "Usable access flow with persistent session, protected route, and logout control to evaluate UX and structure.",
         bullets: ["Usable login", "Persistent session", "Protected dashboard"],
-        to: "/demos/login",
+        routeKey: "demoLogin",
         cta: "Open auth demo",
       },
       {
@@ -59,7 +60,7 @@ const HUB_COPY = {
         text:
           "Simulate real business automations with step execution, validations, and full event traceability.",
         bullets: ["Runnable scenarios", "Event timeline", "Structured output"],
-        to: "/demos/automation",
+        routeKey: "demoAutomation",
         cta: "Open automation lab",
       },
     ],
@@ -85,7 +86,7 @@ export default function DemoHub({ locale }) {
 
             <div style={{ height: 12 }} />
 
-            <Link className="btn" to={card.to}>
+            <Link className="btn" to={getPath(card.routeKey, locale)}>
               {card.cta}
             </Link>
           </article>

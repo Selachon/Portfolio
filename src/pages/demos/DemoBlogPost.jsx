@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
 import { loadDemoPosts } from "../../data/demoStore.js";
 import { getPath } from "../../app/paths.js";
+import { formatLocalizedDateTime } from "../../app/dateTime.js";
 
 const POST_COPY = {
   es: {
@@ -17,13 +18,6 @@ const POST_COPY = {
     edited: "Last edited",
   },
 };
-
-function formatDate(value, locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 export default function DemoBlogPost({ locale }) {
   const copy = POST_COPY[locale] ?? POST_COPY.es;
@@ -68,7 +62,7 @@ export default function DemoBlogPost({ locale }) {
         <p style={{ margin: "12px 0 0", color: "var(--muted)", lineHeight: 1.8 }}>{post.excerpt}</p>
 
         <div style={{ marginTop: 8, color: "var(--muted)", fontSize: 13 }}>
-          {copy.edited}: {formatDate(post.updatedAt, locale)}
+          {copy.edited}: {formatLocalizedDateTime(post.updatedAt, locale)}
         </div>
 
         <div style={{ height: 12 }} />

@@ -16,6 +16,12 @@ export function usePortalTransition(pathname, prefersReducedMotion) {
   const timerRef = useRef({ show: null, hide: null });
   const sequenceRef = useRef(0);
 
+  const clearTimers = () => {
+    const timers = timerRef.current;
+    if (timers.show) window.clearTimeout(timers.show);
+    if (timers.hide) window.clearTimeout(timers.hide);
+  };
+
   useEffect(() => {
     const timers = timerRef.current;
     const previous = previousPathRef.current;
@@ -34,8 +40,7 @@ export function usePortalTransition(pathname, prefersReducedMotion) {
 
     if (wasDemo === nowDemo) return;
 
-    if (timers.show) window.clearTimeout(timers.show);
-    if (timers.hide) window.clearTimeout(timers.hide);
+    clearTimers();
 
     sequenceRef.current += 1;
     const sequence = sequenceRef.current;
@@ -56,20 +61,8 @@ export function usePortalTransition(pathname, prefersReducedMotion) {
       );
     }, duration);
 
-    return () => {
-      if (timers.show) window.clearTimeout(timers.show);
-      if (timers.hide) window.clearTimeout(timers.hide);
-    };
+    return clearTimers;
   }, [pathname, prefersReducedMotion]);
-
-  useEffect(() => {
-    const timers = timerRef.current;
-
-    return () => {
-      if (timers.show) window.clearTimeout(timers.show);
-      if (timers.hide) window.clearTimeout(timers.hide);
-    };
-  }, []);
 
   return {
     portalFx,

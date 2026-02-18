@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { formatLocalizedDateTime } from "../../app/dateTime.js";
 import { getPath } from "../../app/paths.js";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
 import {
@@ -95,13 +96,6 @@ const DEFAULT_FORM = {
   tags: "",
   status: "draft",
 };
-
-function formatDate(value, locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function mapFormToPost(form, existing, posts, locale, id) {
   const title = form.title.trim();
@@ -370,7 +364,7 @@ export default function DemoBlog({ locale }) {
                     </div>
 
                     <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 13 }}>
-                      {copy.updatedAt}: {formatDate(post.updatedAt, locale)}
+                      {copy.updatedAt}: {formatLocalizedDateTime(post.updatedAt, locale)}
                     </div>
 
                     <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>

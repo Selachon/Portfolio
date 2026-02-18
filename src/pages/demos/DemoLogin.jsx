@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
+import { getPath } from "../../app/paths.js";
 import {
   clearDemoSession,
   createDemoSession,
@@ -96,7 +97,7 @@ export default function DemoLogin({ locale }) {
     saveDemoSession(nextSession);
     setSession(nextSession);
     setError("");
-    navigate("/demos/dashboard");
+    navigate(getPath("demoDashboard", locale));
   };
 
   const handleSignOut = () => {
@@ -192,7 +193,7 @@ export default function DemoLogin({ locale }) {
               </div>
 
               <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link className="btn" to="/demos/dashboard">
+                <Link className="btn" to={getPath("demoDashboard", locale)}>
                   {copy.openDashboard}
                 </Link>
                 <button type="button" className="btn btn-ghost" onClick={handleSignOut}>

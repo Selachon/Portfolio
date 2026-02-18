@@ -1,24 +1,25 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { getPath, ROUTE_PATHS } from "../../app/paths.js";
 import { loadDemoSession } from "../../data/demoStore.js";
 
 const DEMO_NAV = {
   es: {
     badge: "Entorno demo interactivo",
     links: [
-      { to: "/demos", label: "Hub" },
-      { to: "/demos/blog", label: "Blog CMS" },
-      { to: "/demos/login", label: "Login" },
-      { to: "/demos/automation", label: "Automation Lab" },
+      { routeKey: "demos", label: "Hub" },
+      { routeKey: "demoBlog", label: "Blog CMS" },
+      { routeKey: "demoLogin", label: "Login" },
+      { routeKey: "demoAutomation", label: "Automation Lab" },
     ],
     authDashboardLabel: "Dashboard",
   },
   en: {
     badge: "Interactive demo environment",
     links: [
-      { to: "/demos", label: "Hub" },
-      { to: "/demos/blog", label: "Blog CMS" },
-      { to: "/demos/login", label: "Login" },
-      { to: "/demos/automation", label: "Automation Lab" },
+      { routeKey: "demos", label: "Hub" },
+      { routeKey: "demoBlog", label: "Blog CMS" },
+      { routeKey: "demoLogin", label: "Login" },
+      { routeKey: "demoAutomation", label: "Automation Lab" },
     ],
     authDashboardLabel: "Dashboard",
   },
@@ -116,19 +117,19 @@ const NAV_THEME = {
 };
 
 function getThemeByPath(pathname) {
-  if (pathname.startsWith("/demos/blog")) return "blog";
-  if (pathname.startsWith("/demos/login") || pathname.startsWith("/demos/dashboard")) return "auth";
-  if (pathname.startsWith("/demos/automation")) return "automation";
+  if (pathname.startsWith(ROUTE_PATHS.demoBlog.es)) return "blog";
+  if (pathname.startsWith(ROUTE_PATHS.demoLogin.es) || pathname.startsWith(ROUTE_PATHS.demoDashboard.es)) return "auth";
+  if (pathname.startsWith(ROUTE_PATHS.demoAutomation.es)) return "automation";
   return "hub";
 }
 
 function isLinkActive(pathname, targetPath) {
-  if (targetPath === "/demos") {
-    return pathname === "/demos";
+  if (targetPath === ROUTE_PATHS.demos.es) {
+    return pathname === ROUTE_PATHS.demos.es;
   }
 
-  if (targetPath === "/demos/blog") {
-    return pathname === "/demos/blog" || pathname.startsWith("/demos/blog/");
+  if (targetPath === ROUTE_PATHS.demoBlog.es) {
+    return pathname === ROUTE_PATHS.demoBlog.es || pathname.startsWith(`${ROUTE_PATHS.demoBlog.es}/`);
   }
 
   return pathname === targetPath;
@@ -176,13 +177,14 @@ export default function DemoFloatingNav({ locale, visible, mode = "light" }) {
         </span>
 
         {copy.links.map((item) => {
-          const isAuthLink = item.to === "/demos/login";
-          const target = isAuthLink && hasDemoSession ? "/demos/dashboard" : item.to;
+          const isAuthLink = item.routeKey === "demoLogin";
+          const baseTarget = getPath(item.routeKey, locale);
+          const target = isAuthLink && hasDemoSession ? getPath("demoDashboard", locale) : baseTarget;
           const label = isAuthLink && hasDemoSession ? copy.authDashboardLabel : item.label;
 
           return (
             <NavLink
-              key={item.to}
+              key={item.routeKey}
               className="pill demo-floating-nav__link"
               to={target}
               style={demoLinkStyle(location.pathname, target)}

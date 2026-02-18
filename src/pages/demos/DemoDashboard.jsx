@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { formatLocalizedDateTime } from "../../app/dateTime.js";
+import { getPath } from "../../app/paths.js";
 import DemoLayout from "../../components/demo/DemoLayout.jsx";
 import {
   clearDemoSession,
@@ -126,13 +128,6 @@ const ACTIONS = [
   { id: "audit", key: "actionAudit", descriptionKey: "actionAuditDesc", runKey: "runAudit" },
 ];
 
-function formatDate(value, locale) {
-  return new Intl.DateTimeFormat(locale === "en" ? "en-US" : "es-CO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 function buildActivityId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
 }
@@ -175,8 +170,8 @@ export default function DemoDashboard({ locale }) {
     if (session || redirectRef.current) return;
 
     redirectRef.current = true;
-    navigate("/demos/login", { replace: true, state: { reason: copy.noSession } });
-  }, [session, navigate, copy.noSession]);
+    navigate(getPath("demoLogin", locale), { replace: true, state: { reason: copy.noSession } });
+  }, [session, navigate, locale, copy.noSession]);
 
   if (!session) {
     return (
@@ -202,7 +197,7 @@ export default function DemoDashboard({ locale }) {
 
   const handleSignOut = () => {
     clearDemoSession();
-    navigate("/demos/login", { replace: true });
+    navigate(getPath("demoLogin", locale), { replace: true });
   };
 
   const handleRequestAccess = (actionId) => {
@@ -289,7 +284,7 @@ export default function DemoDashboard({ locale }) {
                   <strong>{copy.role}:</strong> {isAdmin ? copy.roleAdmin : copy.roleUser}
                 </small>
                 <small style={{ color: "var(--muted)" }}>
-                  <strong>{copy.loginAt}:</strong> {formatDate(session.loginAt, locale)}
+                  <strong>{copy.loginAt}:</strong> {formatLocalizedDateTime(session.loginAt, locale)}
                 </small>
               </div>
             </div>
@@ -438,12 +433,12 @@ export default function DemoDashboard({ locale }) {
                     <div style={{ display: "grid", gap: 2 }}>
                       <strong>{getActionLabel(copy, request.action)}</strong>
                       <small>
-                        {copy.requestedBy}: {request.requestedBy} - {formatDate(request.requestedAt, locale)}
+                        {copy.requestedBy}: {request.requestedBy} - {formatLocalizedDateTime(request.requestedAt, locale)}
                       </small>
                       {request.reviewedBy ? (
                         <small>
                           {copy.reviewedBy}: {request.reviewedBy}
-                          {request.reviewedAt ? ` - ${formatDate(request.reviewedAt, locale)}` : ""}
+                          {request.reviewedAt ? ` - ${formatLocalizedDateTime(request.reviewedAt, locale)}` : ""}
                         </small>
                       ) : null}
                     </div>
@@ -463,7 +458,7 @@ export default function DemoDashboard({ locale }) {
                 activityPreview.map((entry) => (
                   <div key={entry.id} className={`demo-log-item demo-log-item--${entry.level}`}>
                     <span>{entry.message}</span>
-                    <small style={{ color: "var(--muted)" }}>{formatDate(entry.at, locale)}</small>
+                    <small style={{ color: "var(--muted)" }}>{formatLocalizedDateTime(entry.at, locale)}</small>
                   </div>
                 ))
               )
