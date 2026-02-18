@@ -39,17 +39,17 @@ export default function DemoBlogPost({ locale }) {
   }
 
   return (
-      <DemoLayout
-        locale={locale}
-        title={post.title}
-        subtitle={copy.subtitle}
-        theme="blog"
-        right={
-          <Link className="pill" to={getPath("demoBlog", locale)}>
-            {copy.back}
-          </Link>
-        }
-      >
+    <DemoLayout
+      locale={locale}
+      title={post.title}
+      subtitle={copy.subtitle}
+      theme="blog"
+      right={
+        <Link className="pill" to={getPath("demoBlog", locale)}>
+          {copy.back}
+        </Link>
+      }
+    >
       <article className="card" style={{ padding: 18 }}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {post.tags.map((tag) => (
@@ -70,7 +70,7 @@ export default function DemoBlogPost({ locale }) {
         <div style={{ display: "grid", gap: 12 }}>
           {post.content.split("\n").map((paragraph, index) => (
             <p key={`${post.id}-line-${index}`} style={{ margin: 0, lineHeight: 1.9, color: "var(--text)" }}>
-              {paragraph || "\u00a0"}
+              {paragraph || " "}
             </p>
           ))}
         </div>
