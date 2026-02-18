@@ -147,16 +147,13 @@ function sanitizeSession(session) {
   if (!email) return null;
 
   const matchedUser = DEMO_AUTH_USERS.find((user) => user.email === email);
-  const roleFromSession = typeof session.role === "string" && session.role.trim().length > 0 ? session.role.trim() : null;
+  if (!matchedUser) return null;
 
   return {
     id: typeof session.id === "string" && session.id.trim().length > 0 ? session.id : createId(),
     email,
-    role: normalizeRole(roleFromSession ?? matchedUser?.role),
-    name:
-      typeof session.name === "string" && session.name.trim().length > 0
-        ? session.name.trim()
-        : matchedUser?.name ?? "Demo User",
+    role: normalizeRole(matchedUser.role),
+    name: matchedUser.name,
     loginAt: toIsoDate(session.loginAt),
   };
 }

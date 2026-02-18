@@ -90,7 +90,7 @@ export default function Contact({ locale }) {
             <div style={{ fontWeight: 700 }}>{copy.linkedinLabel}</div>
             <div style={{ color: "var(--muted)", marginTop: 4 }}>
               {copy.linkedinValue} -{" "}
-              <a href={CONTACT_INFO.linkedin} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+              <a href={CONTACT_INFO.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
                 {CONTACT_INFO.linkedin}
               </a>
             </div>
@@ -100,7 +100,7 @@ export default function Contact({ locale }) {
             <div style={{ fontWeight: 700 }}>{copy.whatsappLabel}</div>
             <div style={{ color: "var(--muted)", marginTop: 4 }}>
               {copy.whatsappValue} -{" "}
-              <a href={whatsappHref} target="_blank" rel="noreferrer" style={{ color: "var(--accent)" }}>
+              <a href={whatsappHref} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)" }}>
                 {CONTACT_INFO.whatsappDisplay}
               </a>
             </div>
@@ -117,7 +117,7 @@ export default function Contact({ locale }) {
             className="btn"
             href={CONTACT_INFO.linkedin}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             style={{
               background: "#0A66C2",
               borderColor: "#0A66C2",
@@ -134,7 +134,7 @@ export default function Contact({ locale }) {
             className="btn"
             href={whatsappHref}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             style={{
               background: "#25D366",
               borderColor: "#25D366",

@@ -49,7 +49,7 @@ export default function ProjectCard({ project }) {
                 className="pill"
                 href={l.href}
                 target={l.external ? "_blank" : undefined}
-                rel={l.external ? "noreferrer" : undefined}
+                rel={l.external ? "noopener noreferrer" : undefined}
               >
                 {l.label} <ArrowUpRight size={16} />
               </a>
