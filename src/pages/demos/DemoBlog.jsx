@@ -1,390 +1,142 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { formatLocalizedDateTime } from "../../app/dateTime.js";
-import { getPath } from "../../app/paths.js";
-import DemoLayout from "../../components/demo/DemoLayout.jsx";
-import {
-  createClientId,
-  ensureUniqueSlug,
-  loadDemoPosts,
-  resetDemoPosts,
-  saveDemoPosts,
-  slugify,
-} from "../../data/demoStore.js";
+import { useEffect, useState } from "react";
+import DemoReturn from "../../components/demo/DemoReturn.jsx";
+import { fmtAgo } from "../../components/demo/demoUtils.js";
 
-const BLOG_COPY = {
-  es: {
-    title: "Demo | Blog CMS",
-    subtitle:
-      "Editor de contenido utilizable con persistencia local. Puedes crear, editar, borrar y navegar posts como en una implementación real.",
-    searchLabel: "Buscar",
-    searchPlaceholder: "Buscar por título o contenido...",
-    filterLabel: "Filtro",
-    filterAll: "Todos",
-    filterPublished: "Publicados",
-    filterDraft: "Borradores",
-    resetSeed: "Restablecer posts demo",
-    editorTitleCreate: "Crear nuevo post",
-    editorTitleEdit: "Editar post",
-    fieldTitle: "Título",
-    fieldExcerpt: "Resumen",
-    fieldContent: "Contenido",
-    fieldTags: "Tags (separados por coma)",
-    fieldStatus: "Estado",
-    statusDraft: "draft",
-    statusPublished: "published",
-    cancelEdit: "Cancelar edición",
-    saveCreate: "Publicar post",
-    saveEdit: "Guardar cambios",
-    listTitle: "Posts demo",
-    empty: "No hay posts para este filtro.",
-    openPost: "Abrir",
-    editPost: "Editar",
-    deletePost: "Borrar",
-    persistNote: "Los cambios se guardan localmente en tu navegador (localStorage).",
-    validationError: "Completa al menos título y contenido.",
-    createdOk: "Post creado correctamente.",
-    updatedOk: "Post actualizado correctamente.",
-    removedOk: "Post eliminado.",
-    resetOk: "Posts demo restablecidos.",
-    confirmDelete: "¿Seguro que quieres borrar este post demo?",
-    updatedAt: "Actualizado",
-  },
-  en: {
-    title: "Demo | Blog CMS",
-    subtitle:
-      "Usable content editor with local persistence. You can create, edit, delete, and navigate posts like a real implementation.",
-    searchLabel: "Search",
-    searchPlaceholder: "Search by title or content...",
-    filterLabel: "Filter",
-    filterAll: "All",
-    filterPublished: "Published",
-    filterDraft: "Drafts",
-    resetSeed: "Reset demo posts",
-    editorTitleCreate: "Create new post",
-    editorTitleEdit: "Edit post",
-    fieldTitle: "Title",
-    fieldExcerpt: "Excerpt",
-    fieldContent: "Content",
-    fieldTags: "Tags (comma-separated)",
-    fieldStatus: "Status",
-    statusDraft: "draft",
-    statusPublished: "published",
-    cancelEdit: "Cancel edit",
-    saveCreate: "Publish post",
-    saveEdit: "Save changes",
-    listTitle: "Demo posts",
-    empty: "No posts for this filter.",
-    openPost: "Open",
-    editPost: "Edit",
-    deletePost: "Delete",
-    persistNote: "Changes are saved locally in your browser (localStorage).",
-    validationError: "Please fill at least title and content.",
-    createdOk: "Post created successfully.",
-    updatedOk: "Post updated successfully.",
-    removedOk: "Post deleted.",
-    resetOk: "Demo posts reset.",
-    confirmDelete: "Are you sure you want to delete this demo post?",
-    updatedAt: "Updated",
-  },
-};
+const STORAGE_KEY = "kora.demo.blog";
 
-const DEFAULT_FORM = {
-  title: "",
-  excerpt: "",
-  content: "",
-  tags: "",
-  status: "draft",
-};
-
-function mapFormToPost(form, existing, posts, locale, id) {
-  const title = form.title.trim();
-  const slugBase = slugify(title);
-  const slug = ensureUniqueSlug(slugBase, posts, id ?? existing?.id);
-  const tags = form.tags
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean)
-    .slice(0, 10);
-
-  return {
-    id: id ?? existing?.id ?? createClientId(),
-    slug,
-    title,
-    excerpt: form.excerpt.trim(),
-    content: form.content.trim(),
-    tags,
-    status: form.status,
-    author: existing?.author ?? "Kora by Sela",
-    createdAt: existing?.createdAt ?? new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    locale,
-  };
+// Seed posts. In a module-level helper so the render path stays pure.
+function getSeed(locale) {
+  const now = Date.now();
+  return [
+    {
+      id: "p1",
+      title: locale === "es" ? "Bienvenida al taller" : "Welcome to the atelier",
+      status: "published",
+      body: locale === "es"
+        ? "Esto es un demo de CRUD local. Los datos viven en tu navegador y persisten al recargar."
+        : "This is a local CRUD demo. Data lives in your browser and persists on reload.",
+      updated: now - 1000 * 60 * 60 * 24,
+    },
+    {
+      id: "p2",
+      title: locale === "es" ? "Sobre las decisiones técnicas" : "On technical decisions",
+      status: "draft",
+      body: locale === "es" ? "Borrador sobre decisiones de stack y arquitectura." : "Draft on stack and architecture decisions.",
+      updated: now - 1000 * 60 * 30,
+    },
+  ];
 }
 
-function postToForm(post) {
-  return {
-    title: post.title ?? "",
-    excerpt: post.excerpt ?? "",
-    content: post.content ?? "",
-    tags: Array.isArray(post.tags) ? post.tags.join(", ") : "",
-    status: post.status ?? "draft",
-  };
-}
-
+/* DEMO 1 · BLOG CMS — skin "Atelier" (editorial paper) */
 export default function DemoBlog({ locale }) {
-  const copy = BLOG_COPY[locale] ?? BLOG_COPY.es;
-  const blogPath = getPath("demoBlog", locale);
-  const [posts, setPosts] = useState(() => loadDemoPosts(locale));
-  const [query, setQuery] = useState("");
+  const [posts, setPosts] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : getSeed(locale);
+    } catch {
+      return getSeed(locale);
+    }
+  });
+  const [selectedId, setSelectedId] = useState(() => posts[0]?.id || null);
   const [filter, setFilter] = useState("all");
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(DEFAULT_FORM);
-  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
-    saveDemoPosts(posts, locale);
-  }, [posts, locale]);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(posts)); } catch { /* ignore */ }
+  }, [posts]);
 
-  const visiblePosts = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return posts
-      .filter((post) => (filter === "all" ? true : post.status === filter))
-      .filter((post) => {
-        if (!normalizedQuery) return true;
-        return (
-          post.title.toLowerCase().includes(normalizedQuery) ||
-          post.content.toLowerCase().includes(normalizedQuery) ||
-          post.excerpt.toLowerCase().includes(normalizedQuery)
-        );
-      })
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-  }, [posts, filter, query]);
-
-  const clearForm = () => {
-    setEditingId(null);
-    setForm(DEFAULT_FORM);
+  const selected = posts.find((p) => p.id === selectedId);
+  const filtered = filter === "all" ? posts : posts.filter((p) => p.status === filter);
+  const update = (patch) => {
+    if (selected) setPosts((arr) => arr.map((p) => (p.id === selected.id ? { ...p, ...patch, updated: Date.now() } : p)));
   };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    if (!form.title.trim() || !form.content.trim()) {
-      setFeedback(copy.validationError);
-      return;
-    }
-
-    if (editingId) {
-      setPosts((current) => {
-        const existing = current.find((post) => post.id === editingId);
-        const updated = mapFormToPost(form, existing, current, locale, editingId);
-        return current.map((post) => (post.id === editingId ? updated : post));
-      });
-      clearForm();
-      setFeedback(copy.updatedOk);
-      return;
-    }
-
-    setPosts((current) => [mapFormToPost(form, null, current, locale), ...current]);
-    clearForm();
-    setFeedback(copy.createdOk);
+  const add = () => {
+    const id = "p" + Math.random().toString(36).slice(2, 7);
+    setPosts([{ id, title: locale === "es" ? "Borrador sin título" : "Untitled draft", status: "draft", body: "", updated: Date.now() }, ...posts]);
+    setSelectedId(id);
   };
-
-  const handleEdit = (post) => {
-    setEditingId(post.id);
-    setForm(postToForm(post));
-    setFeedback("");
+  const remove = (id) => {
+    setPosts((arr) => arr.filter((p) => p.id !== id));
+    if (selectedId === id) setSelectedId(posts[0]?.id || null);
   };
-
-  const handleDelete = (id) => {
-    if (!window.confirm(copy.confirmDelete)) return;
-
-    setPosts((current) => current.filter((post) => post.id !== id));
-    if (editingId === id) {
-      clearForm();
-    }
-    setFeedback(copy.removedOk);
-  };
-
-  const handleResetSeed = () => {
-    setPosts(resetDemoPosts(locale));
-    clearForm();
-    setFeedback(copy.resetOk);
+  const fLabel = {
+    all: locale === "es" ? "Todos" : "All",
+    published: locale === "es" ? "Publicados" : "Published",
+    draft: locale === "es" ? "Borradores" : "Drafts",
   };
 
   return (
-    <DemoLayout locale={locale} title={copy.title} subtitle={copy.subtitle} theme="blog">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 14, alignItems: "start" }}>
-        <section className="card" style={{ padding: 18 }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(1.2rem, 2.7vw, 1.45rem)" }}>
-            {editingId ? copy.editorTitleEdit : copy.editorTitleCreate}
-          </h2>
+    <div className="page-demo fade-in">
+      <DemoReturn locale={locale} n="01" name="BLOG CMS" styleName="Atelier — editorial" />
+      <div className="skin-atelier">
+        <div className="at-masthead">
+          <div>
+            <div className="at-kicker">The Atelier Review</div>
+            <h1 className="at-title">Editorial Desk</h1>
+          </div>
+          <div className="at-issue">No. {String(posts.length).padStart(2, "0")}<br />MMXXVI</div>
+        </div>
 
-          <form onSubmit={handleSubmit} style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.fieldTitle}</span>
-              <input
-                className="demo-input"
-                value={form.title}
-                onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.fieldExcerpt}</span>
-              <textarea
-                className="demo-input"
-                rows={3}
-                value={form.excerpt}
-                onChange={(event) => setForm((current) => ({ ...current, excerpt: event.target.value }))}
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.fieldContent}</span>
-              <textarea
-                className="demo-input"
-                rows={8}
-                value={form.content}
-                onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.fieldTags}</span>
-              <input
-                className="demo-input"
-                value={form.tags}
-                onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
-              />
-            </label>
-
-            <label style={{ display: "grid", gap: 6 }}>
-              <span style={{ fontWeight: 600 }}>{copy.fieldStatus}</span>
-              <select
-                className="demo-input"
-                value={form.status}
-                onChange={(event) => setForm((current) => ({ ...current, status: event.target.value }))}
-              >
-                <option value="draft">{copy.statusDraft}</option>
-                <option value="published">{copy.statusPublished}</option>
-              </select>
-            </label>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button className="btn" type="submit">
-                {editingId ? copy.saveEdit : copy.saveCreate}
-              </button>
-              {editingId ? (
-                <button className="btn btn-ghost" type="button" onClick={clearForm}>
-                  {copy.cancelEdit}
-                </button>
-              ) : null}
+        <div className="at-grid">
+          <aside className="at-index">
+            <div className="at-index__head">
+              <h4>{locale === "es" ? "Índice" : "Contents"}</h4>
+              <button className="at-newbtn" onClick={add}>+ {locale === "es" ? "Nuevo" : "New"}</button>
             </div>
-          </form>
-        </section>
+            <div className="at-filters">
+              {["all", "published", "draft"].map((f) => (
+                <button key={f} className={"at-filter" + (filter === f ? " is-on" : "")} onClick={() => setFilter(f)}>{fLabel[f]}</button>
+              ))}
+            </div>
+            {filtered.map((p, i) => (
+              <div key={p.id} className={"at-entry" + (selectedId === p.id ? " is-sel" : "")} onClick={() => setSelectedId(p.id)}>
+                <span className="at-entry__n">{String(i + 1).padStart(2, "0")}</span>
+                <div>
+                  <div className="at-entry__t">{p.title}</div>
+                  <div className="at-entry__meta">
+                    {p.status === "published" ? (locale === "es" ? "Publicado" : "Published") : (locale === "es" ? "Borrador" : "Draft")} · {fmtAgo(p.updated, locale)}
+                  </div>
+                </div>
+                <button className="at-entry__x" onClick={(e) => { e.stopPropagation(); remove(p.id); }} aria-label="Delete">×</button>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="at-entry__meta" style={{ paddingTop: 14 }}>{locale === "es" ? "Sin entradas." : "No entries."}</div>
+            )}
+          </aside>
 
-        <aside style={{ display: "grid", gap: 14 }}>
-          <section className="card" style={{ padding: 16 }}>
-            <div style={{ display: "grid", gap: 10 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>{copy.searchLabel}</span>
+          <section className="at-editor">
+            {selected ? (
+              <>
+                <div className="at-editor__bar">
+                  <span className="at-byline">{locale === "es" ? "por" : "by"} Sela · {fmtAgo(selected.updated, locale)}</span>
+                  <button
+                    className={"at-pubtoggle" + (selected.status === "published" ? " is-pub" : "")}
+                    onClick={() => update({ status: selected.status === "published" ? "draft" : "published" })}
+                  >
+                    {selected.status === "published" ? (locale === "es" ? "Publicado" : "Published") : (locale === "es" ? "Publicar" : "Publish")}
+                  </button>
+                </div>
                 <input
-                  className="demo-input"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={copy.searchPlaceholder}
+                  className="at-titlefield"
+                  value={selected.title}
+                  onChange={(e) => update({ title: e.target.value })}
+                  placeholder={locale === "es" ? "Título del artículo" : "Article title"}
                 />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>{copy.filterLabel}</span>
-                <select className="demo-input" value={filter} onChange={(event) => setFilter(event.target.value)}>
-                  <option value="all">{copy.filterAll}</option>
-                  <option value="published">{copy.filterPublished}</option>
-                  <option value="draft">{copy.filterDraft}</option>
-                </select>
-              </label>
-
-              <div>
-                <button type="button" className="btn btn-ghost" onClick={handleResetSeed}>
-                  {copy.resetSeed}
-                </button>
-              </div>
-            </div>
-
-            {feedback ? (
-              <p style={{ margin: "10px 0 0", color: "var(--muted)" }}>
-                {feedback}
-              </p>
-            ) : null}
-          </section>
-
-          <section className="card" style={{ padding: 18 }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(1.2rem, 2.7vw, 1.45rem)" }}>{copy.listTitle}</h2>
-            <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>{copy.persistNote}</p>
-
-            <div style={{ height: 10 }} />
-
-            {visiblePosts.length === 0 ? (
-              <div className="pill" style={{ color: "var(--muted)" }}>
-                {copy.empty}
-              </div>
+                <div className="at-rule-orn"><span className="ln" /><span className="dot">✦</span><span className="ln" /></div>
+                <textarea
+                  className="at-bodyfield"
+                  value={selected.body}
+                  onChange={(e) => update({ body: e.target.value })}
+                  placeholder={locale === "es" ? "Comienza a escribir tu historia…" : "Begin writing your story…"}
+                />
+                <div className="at-foot">{locale === "es" ? "Guardado automáticamente · almacenamiento local" : "Auto-saved · local storage"}</div>
+              </>
             ) : (
-              <div style={{ display: "grid", gap: 10 }}>
-                {visiblePosts.map((post) => (
-                  <article key={post.id} className="card" style={{ padding: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
-                      <div>
-                        <div style={{ fontWeight: 760 }}>{post.title}</div>
-                        <p style={{ margin: "6px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>{post.excerpt}</p>
-                      </div>
-                      <span
-                        className="pill"
-                        style={{
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          borderColor:
-                            post.status === "published"
-                              ? "color-mix(in srgb, var(--success) 34%, var(--border))"
-                              : "color-mix(in srgb, var(--warning) 34%, var(--border))",
-                        }}
-                      >
-                        {post.status}
-                      </span>
-                    </div>
-
-                    <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {post.tags.map((tag) => (
-                        <span key={`${post.id}-${tag}`} className="pill" style={{ padding: "6px 10px", fontSize: 12 }}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 13 }}>
-                      {copy.updatedAt}: {formatLocalizedDateTime(post.updatedAt, locale)}
-                    </div>
-
-                    <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <Link className="btn btn-ghost" to={`${blogPath}/${post.slug}`}>
-                        {copy.openPost}
-                      </Link>
-                      <button type="button" className="btn btn-ghost" onClick={() => handleEdit(post)}>
-                        {copy.editPost}
-                      </button>
-                      <button type="button" className="btn btn-ghost" onClick={() => handleDelete(post.id)}>
-                        {copy.deletePost}
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
+              <div className="at-byline">{locale === "es" ? "Selecciona una entrada del índice." : "Select an entry from the contents."}</div>
             )}
           </section>
-        </aside>
+        </div>
       </div>
-    </DemoLayout>
+    </div>
   );
 }

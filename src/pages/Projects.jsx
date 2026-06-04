@@ -1,65 +1,49 @@
-import PageShell from "../components/PageShell.jsx";
-import ProjectCard from "../components/ProjectCard.jsx";
-import { getLocalizedProjects } from "../data/projects.js";
-
-const PROJECTS_COPY = {
-  es: {
-    title: "Proyectos",
-    subtitle:
-      "Casos reales y laboratorio técnico. En Kora priorizo calidad operativa y contexto de negocio, no volumen sin sentido.",
-    featured: "Destacados",
-    lab: "Laboratorio",
-    labText:
-      "Proyectos para experimentar, validar ideas y mejorar procesos. No son marketing: son práctica real aplicada a desarrollo y automatización.",
-  },
-  en: {
-    title: "Projects",
-    subtitle:
-      "Real cases plus technical lab work. At Kora, I prioritize operational quality and business context over empty project quantity.",
-    featured: "Featured",
-    lab: "Lab",
-    labText:
-      "Projects used to experiment, validate ideas, and improve workflows. These are not portfolio fillers, but real technical practice.",
-  },
-};
+import { CONTENT } from "../content/site.js";
+import { useNav } from "../app/useNav.js";
+import PageHead from "../components/ui/PageHead.jsx";
+import ProjectRow from "../components/ui/ProjectRow.jsx";
 
 export default function Projects({ locale }) {
-  const copy = PROJECTS_COPY[locale] ?? PROJECTS_COPY.es;
-  const projects = getLocalizedProjects(locale);
-  const featured = projects.filter((p) => p.featured);
-  const lab = projects.filter((p) => !p.featured);
+  const c = CONTENT.projects[locale] ?? CONTENT.projects.es;
+  const go = useNav(locale);
+  const items = CONTENT.items;
+  const featured = items.filter((p) => p.featured);
+  const lab = items.filter((p) => !p.featured);
 
   return (
-    <PageShell title={copy.title} subtitle={copy.subtitle}>
-      <div className="card" style={{ padding: 18 }}>
-        <div style={{ fontWeight: 760 }}>{copy.featured}</div>
-        <div style={{ height: 10 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 14 }}>
-          {featured.map((p) => (
-            <div key={p.slug} style={{ gridColumn: "span 12" }}>
-              <ProjectCard project={p} />
-            </div>
+    <div className="page fade-in">
+      <PageHead eyebrow={c.eyebrow} title={c.title} sub={c.sub} />
+
+      <section>
+        <div className="section-rule">
+          <span className="eyebrow">// {c.featuredLabel}</span>
+          <span className="line" />
+          <span className="eyebrow">
+            {String(featured.length).padStart(2, "0")} {locale === "es" ? "PROYECTOS" : "PROJECTS"}
+          </span>
+        </div>
+        <div>
+          {featured.map((p, i) => (
+            <ProjectRow key={p.slug} project={p} idx={i + 1} locale={locale} go={go} />
           ))}
         </div>
-      </div>
+      </section>
 
-      <div style={{ height: 14 }} />
-
-      <div className="card" style={{ padding: 18 }}>
-        <div style={{ fontWeight: 760 }}>{copy.lab}</div>
-        <div style={{ color: "var(--muted)", marginTop: 6, lineHeight: 1.7 }}>
-          {copy.labText}
+      <section>
+        <div className="section-rule">
+          <span className="eyebrow">// {c.labLabel}</span>
+          <span className="line" />
+          <span className="eyebrow">
+            {String(lab.length).padStart(2, "0")} {locale === "es" ? "ENTRADAS" : "ENTRIES"}
+          </span>
         </div>
-
-        <div style={{ height: 10 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 14 }}>
-          {lab.map((p) => (
-            <div key={p.slug} style={{ gridColumn: "span 12" }}>
-              <ProjectCard project={p} />
-            </div>
+        <p className="page__sub" style={{ marginBottom: 8 }}>{c.labText}</p>
+        <div>
+          {lab.map((p, i) => (
+            <ProjectRow key={p.slug} project={p} idx={featured.length + i + 1} locale={locale} go={go} />
           ))}
         </div>
-      </div>
-    </PageShell>
+      </section>
+    </div>
   );
 }

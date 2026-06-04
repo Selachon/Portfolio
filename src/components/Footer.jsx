@@ -1,41 +1,27 @@
-const FOOTER_COPY = {
-  es: "Construido con React + Vite. Rosado en la identidad, sólido en ingeniería.",
-  en: "Built with React + Vite. Pink in the identity, solid in engineering.",
-};
+import { useEffect, useState } from "react";
+import { CONTENT } from "../content/site.js";
 
 export default function Footer({ locale }) {
-  const line = FOOTER_COPY[locale] ?? FOOTER_COPY.es;
+  const c = CONTENT.footer[locale] ?? CONTENT.footer.es;
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const i = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  const t = now.toISOString().split("T")[1].split(".")[0];
 
   return (
-    <footer
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 40,
-        borderTop: "1px solid var(--border)",
-        background: "color-mix(in srgb, var(--bg) 82%, transparent)",
-        backdropFilter: "blur(12px)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "var(--max)",
-          margin: "0 auto",
-          padding: "14px 18px",
-          color: "var(--muted)",
-          display: "flex",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 8,
-          lineHeight: 1.4,
-          fontSize: 13,
-        }}
-      >
-        <span>© {new Date().getFullYear()} Kora by Sela</span>
-        <span>{line}</span>
-      </div>
-    </footer>
+    <div className="container">
+      <footer className="footer">
+        <div className="footer__row">
+          <span>{c.line}</span>
+          <span>
+            <span className="accent">●</span> {c.op} · UTC {t}
+          </span>
+        </div>
+      </footer>
+    </div>
   );
 }

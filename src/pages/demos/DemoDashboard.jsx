@@ -1,475 +1,179 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { formatLocalizedDateTime } from "../../app/dateTime.js";
-import { getPath } from "../../app/paths.js";
-import DemoLayout from "../../components/demo/DemoLayout.jsx";
-import {
-  clearDemoSession,
-  loadDemoRoleWorkspace,
-  loadDemoSession,
-  requestDemoRolePermission,
-  resetDemoRoleWorkspace,
-  reviewDemoRoleRequest,
-  setDemoRolePermission,
-} from "../../data/demoStore.js";
+import { useMemo, useState } from "react";
+import DemoReturn from "../../components/demo/DemoReturn.jsx";
 
-const DASHBOARD_COPY = {
-  es: {
-    title: "Demo | Dashboard por roles",
-    subtitle:
-      "Espacio compartido entre Administrador y Usuario. Cambia de cuenta para ver como se solicitan, aprueban y aplican permisos.",
-    noSession: "No hay sesion activa.",
-    summary: "Resumen de sesion",
-    role: "Rol",
-    roleAdmin: "Administrador",
-    roleUser: "Usuario",
-    loginAt: "Inicio",
-    signOut: "Cerrar sesion",
-    workspace: "Permisos compartidos",
-    workspaceHintAdmin: "Puedes activar permisos directamente o aprobar solicitudes pendientes.",
-    workspaceHintUser: "Puedes solicitar permisos; el administrador decide si se aprueban.",
-    queue: "Bandeja de aprobaciones",
-    queueEmpty: "No hay solicitudes pendientes.",
-    requestAccess: "Solicitar acceso",
-    alreadyPending: "Ya existe una solicitud pendiente para esta accion.",
-    alreadyGranted: "Ese permiso ya esta activo.",
-    requestCreated: "Solicitud enviada al administrador.",
-    approved: "Solicitud aprobada y permiso activado.",
-    rejected: "Solicitud rechazada.",
-    resetWorkspace: "Reiniciar espacio",
-    runArea: "Acciones operativas",
-    runNow: "Ejecutar",
-    runBlocked: "Accion bloqueada por permisos de rol.",
-    runSync: "Sincronizacion completada.",
-    runReport: "Reporte generado y enviado al equipo.",
-    runAudit: "Auditoria ejecutada sin incidentes.",
-    compactHint: "Vista compacta para comparar roles sin scroll vertical.",
-    panelQueue: "Aprobaciones",
-    panelHistory: "Historial",
-    panelActivity: "Actividad",
-    history: "Historial compartido",
-    historyEmpty: "No hay historial aun.",
-    requestedBy: "Solicita",
-    reviewedBy: "Revisa",
-    statusPending: "Pendiente",
-    statusApproved: "Aprobada",
-    statusRejected: "Rechazada",
-    actionSync: "Sincronizacion",
-    actionReport: "Reportes",
-    actionAudit: "Auditoria",
-    actionSyncDesc: "Sincroniza datos operativos entre sistemas.",
-    actionReportDesc: "Genera reportes ejecutivos del periodo.",
-    actionAuditDesc: "Lanza validaciones de cumplimiento.",
-    enablePermission: "Permitir",
-    disablePermission: "Bloquear",
-    approve: "Aprobar",
-    reject: "Rechazar",
-    activity: "Actividad actual",
-    activityEmpty: "Sin actividad en esta sesion.",
-  },
-  en: {
-    title: "Demo | Role-based dashboard",
-    subtitle:
-      "Shared workspace between Administrator and Standard User. Switch accounts to see how permissions are requested, approved, and applied.",
-    noSession: "No active session.",
-    summary: "Session summary",
-    role: "Role",
-    roleAdmin: "Administrator",
-    roleUser: "Standard user",
-    loginAt: "Login",
-    signOut: "Sign out",
-    workspace: "Shared permissions",
-    workspaceHintAdmin: "You can enable permissions directly or approve pending requests.",
-    workspaceHintUser: "You can request permissions; the administrator decides approval.",
-    queue: "Approval queue",
-    queueEmpty: "No pending requests.",
-    requestAccess: "Request access",
-    alreadyPending: "A pending request already exists for this action.",
-    alreadyGranted: "This permission is already enabled.",
-    requestCreated: "Request sent to administrator.",
-    approved: "Request approved and permission enabled.",
-    rejected: "Request rejected.",
-    resetWorkspace: "Reset workspace",
-    runArea: "Operational actions",
-    runNow: "Run",
-    runBlocked: "Action blocked by role permissions.",
-    runSync: "Synchronization completed.",
-    runReport: "Report generated and shared with the team.",
-    runAudit: "Audit executed with no incidents.",
-    compactHint: "Compact view to compare roles without vertical page scrolling.",
-    panelQueue: "Approvals",
-    panelHistory: "History",
-    panelActivity: "Activity",
-    history: "Shared history",
-    historyEmpty: "No history yet.",
-    requestedBy: "Requested by",
-    reviewedBy: "Reviewed by",
-    statusPending: "Pending",
-    statusApproved: "Approved",
-    statusRejected: "Rejected",
-    actionSync: "Synchronization",
-    actionReport: "Reports",
-    actionAudit: "Audit",
-    actionSyncDesc: "Sync operational data across systems.",
-    actionReportDesc: "Generate executive period reports.",
-    actionAuditDesc: "Run compliance validations.",
-    enablePermission: "Allow",
-    disablePermission: "Block",
-    approve: "Approve",
-    reject: "Reject",
-    activity: "Current activity",
-    activityEmpty: "No activity in this session.",
-  },
-};
+const RANGE_SEED = { "24H": 0, "7D": 5, "30D": 9 };
 
-const ACTIONS = [
-  { id: "sync", key: "actionSync", descriptionKey: "actionSyncDesc", runKey: "runSync" },
-  { id: "report", key: "actionReport", descriptionKey: "actionReportDesc", runKey: "runReport" },
-  { id: "audit", key: "actionAudit", descriptionKey: "actionAuditDesc", runKey: "runAudit" },
-];
-
-function buildActivityId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
+// Synthetic series generator. In a module helper so render stays pure;
+// `rangeOffset` re-seeds every series when the time range changes.
+function makeSeries(rangeOffset) {
+  const make = (seed, len = 44) => {
+    const s = seed + rangeOffset;
+    const out = [];
+    let v = 50 + (s * 7) % 30;
+    for (let i = 0; i < len; i++) {
+      v += (Math.sin(i * 0.3 + s) + Math.random() - 0.5) * 6;
+      v = Math.max(12, Math.min(94, v));
+      out.push(v);
+    }
+    return out;
+  };
+  return { req: make(11), conv: make(41), spark1: make(3, 18), spark2: make(8, 18), spark3: make(15, 18), spark4: make(22, 18) };
 }
 
-function getStatusCopy(copy, status) {
-  if (status === "approved") return copy.statusApproved;
-  if (status === "rejected") return copy.statusRejected;
-  return copy.statusPending;
-}
-
-function getStatusClass(status) {
-  if (status === "approved") return "demo-log-item--success";
-  if (status === "rejected") return "demo-log-item--error";
-  return "demo-log-item--info";
-}
-
-function getActionLabel(copy, actionId) {
-  if (actionId === "sync") return copy.actionSync;
-  if (actionId === "report") return copy.actionReport;
-  return copy.actionAudit;
-}
-
+/* DEMO 4 · DASHBOARD — skin "Nebula" (dark neon analytics) */
 export default function DemoDashboard({ locale }) {
-  const copy = DASHBOARD_COPY[locale] ?? DASHBOARD_COPY.es;
-  const navigate = useNavigate();
-  const redirectRef = useRef(false);
-  const session = loadDemoSession();
-  const [workspace, setWorkspace] = useState(() => loadDemoRoleWorkspace());
-  const [activity, setActivity] = useState([]);
-  const [activePanel, setActivePanel] = useState("queue");
+  const [range, setRange] = useState("24H");
+  const series = useMemo(() => makeSeries(RANGE_SEED[range] ?? 0), [range]);
 
-  const isAdmin = session?.role === "Admin";
-  const pendingRequests = useMemo(
-    () => workspace.requests.filter((request) => request.status === "pending"),
-    [workspace.requests],
-  );
-  const panelItemsLimit = 6;
-
-  useEffect(() => {
-    if (session || redirectRef.current) return;
-
-    redirectRef.current = true;
-    navigate(getPath("demoLogin", locale), { replace: true, state: { reason: copy.noSession } });
-  }, [session, navigate, locale, copy.noSession]);
-
-  if (!session) {
-    return (
-      <DemoLayout locale={locale} title={copy.title} subtitle={copy.subtitle} theme="auth">
-        <div className="card" style={{ padding: 18 }}>
-          <p style={{ margin: 0, color: "var(--muted)" }}>{copy.noSession}</p>
-        </div>
-      </DemoLayout>
-    );
-  }
-
-  const pushActivity = (message, level = "info") => {
-    setActivity((current) => [
-      {
-        id: buildActivityId(),
-        message,
-        level,
-        at: new Date().toISOString(),
-      },
-      ...current,
-    ]);
-  };
-
-  const handleSignOut = () => {
-    clearDemoSession();
-    navigate(getPath("demoLogin", locale), { replace: true });
-  };
-
-  const handleRequestAccess = (actionId) => {
-    if (workspace.permissions[actionId]) {
-      pushActivity(copy.alreadyGranted, "info");
-      return;
-    }
-
-    const hasPending = workspace.requests.some((request) => request.action === actionId && request.status === "pending");
-    if (hasPending) {
-      pushActivity(copy.alreadyPending, "info");
-      return;
-    }
-
-    const nextWorkspace = requestDemoRolePermission(actionId, session.email);
-    setWorkspace(nextWorkspace);
-    pushActivity(copy.requestCreated, "success");
-  };
-
-  const handleReview = (requestId, approved) => {
-    const nextWorkspace = reviewDemoRoleRequest(requestId, session.email, approved);
-    setWorkspace(nextWorkspace);
-    pushActivity(approved ? copy.approved : copy.rejected, approved ? "success" : "error");
-  };
-
-  const handlePermissionToggle = (actionId, enabled) => {
-    const nextWorkspace = setDemoRolePermission(actionId, enabled);
-    setWorkspace(nextWorkspace);
-    const actionLabel = getActionLabel(copy, actionId);
-    const actionStateLabel = enabled ? copy.enablePermission : copy.disablePermission;
-    pushActivity(`${actionStateLabel}: ${actionLabel}`, enabled ? "success" : "error");
-  };
-
-  const handleRunAction = (action) => {
-    if (!isAdmin && !workspace.permissions[action.id]) {
-      pushActivity(copy.runBlocked, "error");
-      return;
-    }
-
-    pushActivity(copy[action.runKey], "success");
-  };
-
-  const handleResetWorkspace = () => {
-    const nextWorkspace = resetDemoRoleWorkspace();
-    setWorkspace(nextWorkspace);
-    setActivity([]);
-  };
-
-  const queuePreview = pendingRequests.slice(0, panelItemsLimit);
-  const historyPreview = workspace.requests.slice(0, panelItemsLimit);
-  const activityPreview = activity.slice(0, panelItemsLimit);
-  const panelOptions = [
-    { id: "queue", label: copy.panelQueue, count: pendingRequests.length },
-    { id: "history", label: copy.panelHistory, count: workspace.requests.length },
-    { id: "activity", label: copy.panelActivity, count: activity.length },
+  const kpis = [
+    { k: locale === "es" ? "Req / min" : "Req / min", v: "1,284", tr: "+12.4%", up: true, c: "#22D3EE", sp: series.spark1 },
+    { k: locale === "es" ? "Latencia p95" : "Latency p95", v: "184ms", tr: "-8.1%", up: true, c: "#818CF8", sp: series.spark2 },
+    { k: locale === "es" ? "Tasa de error" : "Error rate", v: "0.04%", tr: "+0.01pp", up: false, c: "#F472B6", sp: series.spark3 },
+    { k: locale === "es" ? "Conversión" : "Conversion", v: "3.2%", tr: "+0.4pp", up: true, c: "#A3E635", sp: series.spark4 },
+  ];
+  const ring = [
+    { l: locale === "es" ? "Directo" : "Direct", v: 42, c: "#22D3EE" },
+    { l: locale === "es" ? "Orgánico" : "Organic", v: 31, c: "#818CF8" },
+    { l: "Referral", v: 17, c: "#F472B6" },
+    { l: locale === "es" ? "Campaña" : "Campaign", v: 10, c: "#A3E635" },
+  ];
+  const bars = [38, 62, 47, 80, 56, 71, 90];
+  const dayLabels = locale === "es" ? ["L", "M", "X", "J", "V", "S", "D"] : ["M", "T", "W", "T", "F", "S", "S"];
+  const events = [
+    { ts: "23:14:02", nm: "deploy.success", vl: "fares · main · 3a4f" },
+    { ts: "23:13:58", nm: "cron.executed", vl: "auto · cron_07 · 240ms" },
+    { ts: "23:13:50", nm: "ticket.resolved", vl: "support · #4291" },
+    { ts: "23:12:11", nm: "alert.cleared", vl: "latency · p95 < 200ms" },
+    { ts: "23:11:08", nm: "user.login", vl: "admin@korabysela.dev" },
   ];
 
-  const activePanelTitle =
-    activePanel === "queue" ? copy.queue : activePanel === "history" ? copy.history : copy.activity;
-
-  const activePanelTotal =
-    activePanel === "queue"
-      ? pendingRequests.length
-      : activePanel === "history"
-        ? workspace.requests.length
-        : activity.length;
-
-  const hiddenPanelItems = Math.max(0, activePanelTotal - panelItemsLimit);
-
   return (
-    <DemoLayout locale={locale} title={copy.title} subtitle={copy.subtitle} theme="auth">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 14, alignItems: "start" }}>
-        <div style={{ display: "grid", gap: 14 }}>
-          <section className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: "clamp(1.08rem, 2.35vw, 1.28rem)" }}>{copy.summary}</h2>
-                <p style={{ margin: "6px 0 0", color: "var(--muted)", lineHeight: 1.55 }}>{copy.compactHint}</p>
-              </div>
-
-              <div style={{ display: "grid", gap: 6, minWidth: 220 }}>
-                <div className="pill" style={{ width: "fit-content" }}>{session.email}</div>
-                <small style={{ color: "var(--muted)" }}>
-                  <strong>{copy.role}:</strong> {isAdmin ? copy.roleAdmin : copy.roleUser}
-                </small>
-                <small style={{ color: "var(--muted)" }}>
-                  <strong>{copy.loginAt}:</strong> {formatLocalizedDateTime(session.loginAt, locale)}
-                </small>
-              </div>
-            </div>
-
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="btn btn-ghost" type="button" onClick={handleSignOut}>
-                {copy.signOut}
-              </button>
-              {isAdmin ? (
-                <button type="button" className="btn btn-ghost" onClick={handleResetWorkspace}>
-                  {copy.resetWorkspace}
-                </button>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="card" style={{ padding: 16 }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(1.08rem, 2.35vw, 1.28rem)" }}>{copy.workspace}</h2>
-            <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.6 }}>
-              {isAdmin ? copy.workspaceHintAdmin : copy.workspaceHintUser}
-            </p>
-
-            <div
-              style={{
-                marginTop: 12,
-                display: "grid",
-                gap: 10,
-                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-              }}
-            >
-              {ACTIONS.map((action) => {
-                const isEnabled = workspace.permissions[action.id];
-                const actionLabel = getActionLabel(copy, action.id);
-
-                return (
-                  <article
-                    key={action.id}
-                    style={{
-                      border: "1px solid var(--border)",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      display: "grid",
-                      gap: 8,
-                      background: "color-mix(in srgb, var(--bg-elev) 90%, transparent)",
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                      <strong>{actionLabel}</strong>
-                      <span className="pill" style={{ width: "fit-content" }}>
-                        {isEnabled ? copy.enablePermission : copy.disablePermission}
-                      </span>
-                    </div>
-
-                    <small style={{ color: "var(--muted)", lineHeight: 1.55 }}>{copy[action.descriptionKey]}</small>
-
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <button type="button" className="btn btn-ghost" onClick={() => handleRunAction(action)}>
-                        {copy.runNow}
-                      </button>
-
-                      {isAdmin ? (
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          onClick={() => handlePermissionToggle(action.id, !isEnabled)}
-                        >
-                          {isEnabled ? copy.disablePermission : copy.enablePermission}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          onClick={() => handleRequestAccess(action.id)}
-                          disabled={isEnabled}
-                        >
-                          {copy.requestAccess}
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
+    <div className="page-demo fade-in">
+      <DemoReturn locale={locale} n="04" name="DASHBOARD" styleName="Nebula — analytics" />
+      <div className="skin-nebula">
+        <div className="ne-top">
+          <div>
+            <h1 className="ne-title">{locale === "es" ? "Panel " : "Operations "}<span className="gl">{locale === "es" ? "operativo" : "overview"}</span></h1>
+            <p className="ne-sub">{locale === "es" ? "Métricas en vivo · datos locales de simulación" : "Live metrics · local simulation data"}</p>
+          </div>
+          <div className="ne-range">
+            {["24H", "7D", "30D"].map((r) => (
+              <button key={r} className={range === r ? "on" : ""} onClick={() => setRange(r)}>{r}</button>
+            ))}
+          </div>
         </div>
 
-        <section className="card" style={{ padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: "clamp(1.08rem, 2.35vw, 1.28rem)" }}>{activePanelTitle}</h2>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {panelOptions.map((panel) => (
-                <button
-                  key={panel.id}
-                  type="button"
-                  className={activePanel === panel.id ? "btn" : "btn btn-ghost"}
-                  onClick={() => setActivePanel(panel.id)}
-                  style={{ padding: "7px 10px" }}
-                >
-                  {panel.label} ({panel.count})
-                </button>
+        <div className="ne-kpis">
+          {kpis.map((k) => (
+            <div className="ne-kpi" key={k.k}>
+              <div className="ne-kpi__k">{k.k}</div>
+              <div className="ne-kpi__v">{k.v}</div>
+              <div className={"ne-kpi__tr " + (k.up ? "up" : "down")}>{k.up ? "▲" : "▼"} {k.tr}</div>
+              <svg className="ne-kpi__spark" viewBox="0 0 96 40" preserveAspectRatio="none">
+                <polyline
+                  fill="none"
+                  stroke={k.c}
+                  strokeWidth="2"
+                  points={k.sp.map((v, i) => `${(i / (k.sp.length - 1)) * 96},${40 - (v / 100) * 36}`).join(" ")}
+                />
+              </svg>
+            </div>
+          ))}
+        </div>
+
+        <div className="ne-charts">
+          <NeLine title={locale === "es" ? "Solicitudes / período" : "Requests / period"} data={series.req} />
+          <div className="ne-panel">
+            <div className="ne-panel__head"><span className="ne-panel__t">{locale === "es" ? "Fuentes de tráfico" : "Traffic sources"}</span><span className="ne-panel__live"><span className="ne-dot" /> LIVE</span></div>
+            <NeRing data={ring} />
+          </div>
+        </div>
+
+        <div className="ne-bottom">
+          <div className="ne-panel">
+            <div className="ne-panel__head"><span className="ne-panel__t">{locale === "es" ? "Conversiones / semana" : "Conversions / week"}</span></div>
+            <div className="ne-bars">
+              {bars.map((b, i) => (
+                <div className="ne-bar" key={i}>
+                  <div className="ne-bar__fill" style={{ height: `${b}%` }} />
+                  <span className="ne-bar__l">{dayLabels[i]}</span>
+                </div>
               ))}
             </div>
           </div>
-
-          <div style={{ height: 10 }} />
-
-          <div style={{ display: "grid", gap: 8, maxHeight: "52vh", overflowY: "auto", paddingRight: 2 }}>
-            {activePanel === "queue" ? (
-              queuePreview.length === 0 ? (
-                <p style={{ margin: 0, color: "var(--muted)" }}>{copy.queueEmpty}</p>
-              ) : (
-                queuePreview.map((request) => (
-                  <div key={request.id} className="demo-log-item demo-log-item--info">
-                    <div style={{ display: "grid", gap: 2 }}>
-                      <strong>{getActionLabel(copy, request.action)}</strong>
-                      <small>
-                        {copy.requestedBy}: {request.requestedBy}
-                      </small>
-                    </div>
-
-                    {isAdmin ? (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <button type="button" className="btn btn-ghost" onClick={() => handleReview(request.id, true)}>
-                          {copy.approve}
-                        </button>
-                        <button type="button" className="btn btn-ghost" onClick={() => handleReview(request.id, false)}>
-                          {copy.reject}
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="pill" style={{ width: "fit-content" }}>
-                        {copy.statusPending}
-                      </span>
-                    )}
-                  </div>
-                ))
-              )
-            ) : null}
-
-            {activePanel === "history" ? (
-              historyPreview.length === 0 ? (
-                <p style={{ margin: 0, color: "var(--muted)" }}>{copy.historyEmpty}</p>
-              ) : (
-                historyPreview.map((request) => (
-                  <div key={request.id} className={`demo-log-item ${getStatusClass(request.status)}`}>
-                    <div style={{ display: "grid", gap: 2 }}>
-                      <strong>{getActionLabel(copy, request.action)}</strong>
-                      <small>
-                        {copy.requestedBy}: {request.requestedBy} - {formatLocalizedDateTime(request.requestedAt, locale)}
-                      </small>
-                      {request.reviewedBy ? (
-                        <small>
-                          {copy.reviewedBy}: {request.reviewedBy}
-                          {request.reviewedAt ? ` - ${formatLocalizedDateTime(request.reviewedAt, locale)}` : ""}
-                        </small>
-                      ) : null}
-                    </div>
-
-                    <span className="pill" style={{ width: "fit-content" }}>
-                      {getStatusCopy(copy, request.status)}
-                    </span>
-                  </div>
-                ))
-              )
-            ) : null}
-
-            {activePanel === "activity" ? (
-              activityPreview.length === 0 ? (
-                <p style={{ margin: 0, color: "var(--muted)" }}>{copy.activityEmpty}</p>
-              ) : (
-                activityPreview.map((entry) => (
-                  <div key={entry.id} className={`demo-log-item demo-log-item--${entry.level}`}>
-                    <span>{entry.message}</span>
-                    <small style={{ color: "var(--muted)" }}>{formatLocalizedDateTime(entry.at, locale)}</small>
-                  </div>
-                ))
-              )
-            ) : null}
+          <div className="ne-panel">
+            <div className="ne-panel__head"><span className="ne-panel__t">{locale === "es" ? "Eventos recientes" : "Recent events"}</span><span className="ne-panel__live"><span className="ne-dot" /> STREAM</span></div>
+            <div className="ne-events">
+              {events.map((e, i) => (
+                <div className="ne-ev" key={i}><span className="t">{e.ts}</span><span className="ic">✓</span><span className="nm">{e.nm}</span><span className="vl">{e.vl}</span></div>
+              ))}
+            </div>
           </div>
-
-          {hiddenPanelItems > 0 ? (
-            <p style={{ margin: "10px 0 0", color: "var(--muted)", fontSize: 13 }}>+{hiddenPanelItems}</p>
-          ) : null}
-        </section>
+        </div>
       </div>
-    </DemoLayout>
+    </div>
+  );
+}
+
+function NeLine({ title, data }) {
+  const W = 600, H = 170;
+  const min = Math.min(...data), max = Math.max(...data);
+  const norm = (v) => H - 16 - ((v - min) / Math.max(1, max - min)) * (H - 34);
+  const step = W / (data.length - 1);
+  const path = data.map((v, i) => `${i === 0 ? "M" : "L"} ${i * step} ${norm(v)}`).join(" ");
+  return (
+    <div className="ne-panel">
+      <div className="ne-panel__head"><span className="ne-panel__t">{title}</span><span className="ne-panel__live"><span className="ne-dot" /> LIVE</span></div>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ display: "block", width: "100%", height: 170 }}>
+        <defs>
+          <linearGradient id="ne-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#22D3EE" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#22D3EE" stopOpacity="0" />
+          </linearGradient>
+          <filter id="ne-glow"><feGaussianBlur stdDeviation="3" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        </defs>
+        {[0.25, 0.5, 0.75].map((y) => <line key={y} x1="0" x2={W} y1={H * y} y2={H * y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />)}
+        <path d={`${path} L ${W} ${H} L 0 ${H} Z`} fill="url(#ne-fill)" />
+        <path d={path} fill="none" stroke="#22D3EE" strokeWidth="2.2" filter="url(#ne-glow)" />
+      </svg>
+    </div>
+  );
+}
+
+function NeRing({ data }) {
+  const total = data.reduce((s, d) => s + d.v, 0);
+  const R = 52, C = 2 * Math.PI * R;
+  // Derive each arc's cumulative offset from the slice before it, so no
+  // outer variable is mutated during render.
+  const arcs = data.map((d, i) => {
+    const before = data.slice(0, i).reduce((s, x) => s + x.v, 0);
+    return { ...d, dash: `${(d.v / total) * C} ${C}`, off: -(before / total) * C };
+  });
+  return (
+    <div className="ne-ring">
+      <svg width="132" height="132" viewBox="0 0 132 132">
+        <circle cx="66" cy="66" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="16" />
+        {arcs.map((d, i) => (
+          <circle
+            key={i}
+            cx="66"
+            cy="66"
+            r={R}
+            fill="none"
+            stroke={d.c}
+            strokeWidth="16"
+            strokeDasharray={d.dash}
+            strokeDashoffset={d.off}
+            transform="rotate(-90 66 66)"
+            style={{ filter: `drop-shadow(0 0 5px ${d.c}66)` }}
+          />
+        ))}
+      </svg>
+      <div className="ne-ring__legend">
+        {data.map((d) => (
+          <div className="ne-leg" key={d.l}><span className="sw" style={{ background: d.c }} /> {d.l} · <b>{d.v}%</b></div>
+        ))}
+      </div>
+    </div>
   );
 }

@@ -1,241 +1,124 @@
-import { useMemo, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import DemoLayout from "../../components/demo/DemoLayout.jsx";
-import { getPath } from "../../app/paths.js";
-import {
-  clearDemoSession,
-  createDemoSession,
-  getDemoAuthUsers,
-  loadDemoSession,
-  saveDemoSession,
-  validateDemoCredentials,
-} from "../../data/demoStore.js";
+import { useEffect, useState } from "react";
+import DemoReturn from "../../components/demo/DemoReturn.jsx";
 
-const LOGIN_COPY = {
-  es: {
-    title: "Demo | Login",
-    subtitle:
-      "Flujo de autenticacion demo con 2 perfiles: Administrador y Usuario. Prueba intercambio de roles para ver permisos reales.",
-    credentialsTitle: "Cuentas demo",
-    credentialsHelper: "Estas cuentas comparten el mismo espacio de trabajo para simular aprobaciones por rol.",
-    accessRequired: "Acceso requerido",
-    email: "Correo",
-    password: "Contrasena",
-    signIn: "Iniciar sesion",
-    useAccount: "Usar cuenta",
-    role: "Rol",
-    roleAdmin: "Administrador",
-    roleUser: "Usuario",
-    accountAdminHint: "Puede aprobar solicitudes y gestionar permisos.",
-    accountUserHint: "Puede solicitar permisos y operar segun autorizaciones.",
-    sessionActive: "Sesion activa",
-    sessionActiveText: "Ya hay una sesion demo iniciada en este navegador.",
-    openDashboard: "Ir al dashboard",
-    closeSession: "Cerrar sesion",
-    invalid: "Credenciales invalidas para esta demo.",
-    note: "Acceso simulado, sin backend real.",
-  },
-  en: {
-    title: "Demo | Login",
-    subtitle:
-      "Demo auth flow with 2 profiles: Administrator and Standard User. Switch roles to test real permission boundaries.",
-    credentialsTitle: "Demo accounts",
-    credentialsHelper: "Both accounts share the same workspace to simulate role-based approvals.",
-    accessRequired: "Access required",
-    email: "Email",
-    password: "Password",
-    signIn: "Sign in",
-    useAccount: "Use account",
-    role: "Role",
-    roleAdmin: "Administrator",
-    roleUser: "Standard user",
-    accountAdminHint: "Can approve requests and manage permissions.",
-    accountUserHint: "Can request permissions and operate within approvals.",
-    sessionActive: "Session active",
-    sessionActiveText: "A demo session is already active in this browser.",
-    openDashboard: "Open dashboard",
-    closeSession: "Sign out",
-    invalid: "Invalid credentials for this demo.",
-    note: "Simulated access, no real backend.",
-  },
-};
-
-function getRoleLabel(copy, role) {
-  return role === "Admin" ? copy.roleAdmin : copy.roleUser;
-}
-
+/* DEMO 2 · AUTH — skin "Aurora" (bright modern SaaS) */
 export default function DemoLogin({ locale }) {
-  const copy = LOGIN_COPY[locale] ?? LOGIN_COPY.es;
-  const location = useLocation();
-  const navigate = useNavigate();
-  const accounts = useMemo(() => getDemoAuthUsers(), []);
-  const defaultAccount = accounts[0] ?? { id: "", email: "", password: "", role: "User", name: "Demo User" };
-  const [session, setSession] = useState(() => loadDemoSession());
-  const [email, setEmail] = useState(defaultAccount.email);
-  const [password, setPassword] = useState(defaultAccount.password);
-  const [selectedAccountId, setSelectedAccountId] = useState(defaultAccount.id);
-  const [error, setError] = useState("");
-
-  const reason = typeof location.state?.reason === "string" ? location.state.reason : "";
-
-  const applyAccount = (account) => {
-    setSelectedAccountId(account.id);
-    setEmail(account.email);
-    setPassword(account.password);
-    setError("");
+  const STORAGE_KEY = "kora.demo.auth";
+  const ACCOUNTS = {
+    "admin@korabysela.dev": { pw: "kora-admin-2026", role: "admin", name: "Sela", initials: "S" },
+    "user@korabysela.dev": { pw: "kora-user-2026", role: "user", name: "Demo User", initials: "D" },
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const [session, setSession] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
+  });
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState(null);
 
-    if (!validateDemoCredentials(email, password)) {
-      setError(copy.invalid);
+  useEffect(() => {
+    try {
+      if (session) localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch { /* ignore */ }
+  }, [session]);
+
+  const submit = (e) => {
+    e.preventDefault();
+    const acct = ACCOUNTS[email.trim().toLowerCase()];
+    if (!acct || acct.pw !== pw) {
+      setErr(locale === "es" ? "Credenciales inválidas." : "Invalid credentials.");
       return;
     }
-
-    const nextSession = createDemoSession(email.trim().toLowerCase());
-    saveDemoSession(nextSession);
-    setSession(nextSession);
-    setError("");
-    navigate(getPath("demoDashboard", locale));
+    setSession({ email: email.trim().toLowerCase(), role: acct.role, name: acct.name, initials: acct.initials });
+    setErr(null);
+    setEmail("");
+    setPw("");
   };
+  const fill = (e) => { setEmail(e); setPw(ACCOUNTS[e].pw); setErr(null); };
 
-  const handleSignOut = () => {
-    clearDemoSession();
-    setSession(null);
-  };
+  const TILES = [
+    { t: locale === "es" ? "Mi perfil" : "My profile", d: locale === "es" ? "Datos de tu cuenta." : "Your account details.", ic: "◓", c: "#5B4BE8", admin: false },
+    { t: locale === "es" ? "Mis tareas" : "My tasks", d: locale === "es" ? "Trabajo asignado." : "Assigned work.", ic: "✓", c: "#0E9F6E", admin: false },
+    { t: locale === "es" ? "Soporte" : "Support", d: locale === "es" ? "Centro de ayuda." : "Help center.", ic: "◍", c: "#0EA5E9", admin: false },
+    { t: locale === "es" ? "Administración" : "Administration", d: locale === "es" ? "Gestión de usuarios." : "User management.", ic: "⚙", c: "#9333EA", admin: true },
+    { t: locale === "es" ? "Configuración" : "Configuration", d: locale === "es" ? "Ajustes del sistema." : "System settings.", ic: "▤", c: "#E11D48", admin: true },
+    { t: locale === "es" ? "Logs del sistema" : "System logs", d: locale === "es" ? "Auditoría completa." : "Full audit trail.", ic: "≣", c: "#F59E0B", admin: true },
+  ];
 
   return (
-    <DemoLayout locale={locale} title={copy.title} subtitle={copy.subtitle} theme="auth">
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 14 }}>
-        {reason ? (
-          <section className="card" style={{ gridColumn: "span 12", padding: 18 }}>
-            <strong>{copy.accessRequired}</strong>
-            <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>{reason}</p>
-          </section>
-        ) : null}
-
-        <section className="card" style={{ gridColumn: "span 12", padding: 18 }}>
-          <h2 style={{ margin: 0, fontSize: "clamp(1.15rem, 2.6vw, 1.4rem)" }}>{copy.credentialsTitle}</h2>
-          <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>{copy.credentialsHelper}</p>
-
-          <div
-            style={{
-              marginTop: 10,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: 10,
-              alignItems: "start",
-            }}
-          >
-            {accounts.map((account) => {
-              const isAdmin = account.role === "Admin";
-
-              return (
-                <article
-                  key={account.id}
-                  style={{
-                    border: "1px solid var(--border)",
-                    borderRadius: 12,
-                    padding: "12px 14px",
-                    background:
-                      selectedAccountId === account.id
-                        ? "color-mix(in srgb, var(--accent-soft) 40%, var(--bg-elev))"
-                        : "color-mix(in srgb, var(--bg-elev) 90%, transparent)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-                    <strong>{account.name}</strong>
-                    <span className="pill" style={{ width: "fit-content" }}>
-                      {copy.role}: {getRoleLabel(copy, account.role)}
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
-                    <div className="pill" style={{ width: "fit-content" }}>
-                      <strong>{copy.email}:</strong> {account.email}
-                    </div>
-                    <div className="pill" style={{ width: "fit-content" }}>
-                      <strong>{copy.password}:</strong> {account.password}
-                    </div>
-                  </div>
-
-                  <p style={{ margin: "10px 0 0", color: "var(--muted)", fontSize: 14 }}>
-                    {isAdmin ? copy.accountAdminHint : copy.accountUserHint}
-                  </p>
-
-                  <div style={{ marginTop: 10 }}>
-                    <button type="button" className="btn btn-ghost" onClick={() => applyAccount(account)}>
-                      {copy.useAccount}
+    <div className="page-demo fade-in">
+      <DemoReturn locale={locale} n="02" name={locale === "es" ? "AUTH POR ROLES" : "ROLE AUTH"} styleName="Aurora — SaaS" />
+      <div className="skin-aurora">
+        <div className="au-shell">
+          {!session ? (
+            <div className="au-login">
+              <form className="au-card" onSubmit={submit}>
+                <div className="au-eyebrow">Aurora ID</div>
+                <h2 className="au-h">{locale === "es" ? "Bienvenido de vuelta" : "Welcome back"}</h2>
+                <p className="au-sub">{locale === "es" ? "Inicia sesión para ver el acceso por rol." : "Sign in to see role-scoped access."}</p>
+                <label className="au-field">
+                  <span className="au-field__lbl">Email</span>
+                  <input className="au-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required />
+                </label>
+                <label className="au-field">
+                  <span className="au-field__lbl">{locale === "es" ? "Contraseña" : "Password"}</span>
+                  <input className="au-input" type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••••" required />
+                </label>
+                {err && <p className="au-err">⚠ {err}</p>}
+                <button className="au-btn" type="submit">{locale === "es" ? "Iniciar sesión" : "Sign in"} →</button>
+              </form>
+              <div className="au-aside">
+                <div className="au-asidecard">
+                  <div className="au-eyebrow">{locale === "es" ? "Cuentas demo" : "Demo accounts"}</div>
+                  <p className="au-hint" style={{ marginBottom: 16 }}>{locale === "es" ? "Toca una para autocompletar:" : "Tap one to autofill:"}</p>
+                  {Object.entries(ACCOUNTS).map(([e, a]) => (
+                    <button key={e} type="button" className="au-acct" onClick={() => fill(e)}>
+                      <span
+                        className="au-acct__av"
+                        style={{ background: a.role === "admin" ? "linear-gradient(135deg,#5B4BE8,#9333EA)" : "linear-gradient(135deg,#0E9F6E,#0EA5E9)" }}
+                      >
+                        {a.initials}
+                      </span>
+                      <span>
+                        <span className="au-acct__e">{e}</span><br />
+                        <span className="au-acct__r">{a.role === "admin" ? (locale === "es" ? "Acceso total" : "Full access") : (locale === "es" ? "Acceso limitado" : "Limited access")}</span>
+                      </span>
                     </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <p style={{ margin: "10px 0 0", color: "var(--muted)", fontSize: 14 }}>{copy.note}</p>
-        </section>
-
-        <section className="card" style={{ gridColumn: "span 12", padding: 18 }}>
-          {session ? (
-            <>
-              <h2 style={{ margin: 0, fontSize: "clamp(1.15rem, 2.6vw, 1.4rem)" }}>{copy.sessionActive}</h2>
-              <p style={{ margin: "8px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>{copy.sessionActiveText}</p>
-
-              <div style={{ marginTop: 10, display: "grid", gap: 8 }}>
-                <div className="pill" style={{ width: "fit-content" }}>
-                  {session.email}
-                </div>
-                <div style={{ color: "var(--muted)" }}>
-                  <strong>{copy.role}:</strong> {getRoleLabel(copy, session.role)}
+                  ))}
+                  <p className="au-hint">{locale === "es" ? "Sin backend — simulación local." : "No backend — local simulation."}</p>
                 </div>
               </div>
-
-              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link className="btn" to={getPath("demoDashboard", locale)}>
-                  {copy.openDashboard}
-                </Link>
-                <button type="button" className="btn btn-ghost" onClick={handleSignOut}>
-                  {copy.closeSession}
-                </button>
-              </div>
-            </>
+            </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ display: "grid", gap: 10 }}>
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>{copy.email}</span>
-                <input
-                  className="demo-input"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
-              </label>
-
-              <label style={{ display: "grid", gap: 6 }}>
-                <span style={{ fontWeight: 600 }}>{copy.password}</span>
-                <input
-                  className="demo-input"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
-              </label>
-
-              {error ? <p style={{ margin: "4px 0 0", color: "var(--danger)" }}>{error}</p> : null}
-
-              <div>
-                <button className="btn" type="submit">
-                  {copy.signIn}
-                </button>
+            <div className="au-app">
+              <div className="au-topbar">
+                <div className="au-user">
+                  <span className="au-user__av">{session.initials}</span>
+                  <div>
+                    <div className="au-user__n">{session.name}</div>
+                    <span className={"au-rolepill" + (session.role === "user" ? " user" : "")}>{session.role}</span>
+                  </div>
+                </div>
+                <button className="au-signout" onClick={() => setSession(null)}>{locale === "es" ? "Cerrar sesión" : "Sign out"}</button>
               </div>
-            </form>
+              <div className="au-tiles">
+                {TILES.map((tile) => {
+                  const ok = !tile.admin || session.role === "admin";
+                  return (
+                    <div key={tile.t} className={"au-tile " + (ok ? "ok" : "locked")}>
+                      <div className="au-tile__ic" style={{ background: ok ? `${tile.c}1f` : "#E5E7EB", color: ok ? tile.c : "#9CA3AF" }}>{ok ? tile.ic : "🔒"}</div>
+                      <h3 className="au-tile__t">{tile.t}</h3>
+                      <p className="au-tile__d">{tile.d}</p>
+                      <span className="au-tile__badge">{ok ? (locale === "es" ? "● Disponible" : "● Available") : (locale === "es" ? "Solo admin" : "Admin only")}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
-        </section>
+        </div>
       </div>
-    </DemoLayout>
+    </div>
   );
 }

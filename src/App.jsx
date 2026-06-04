@@ -1,75 +1,39 @@
+import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { AnimatePresence, motion as Motion, useReducedMotion } from "framer-motion";
 import AppRoutes from "./app/routes/AppRoutes.jsx";
 import { useLocaleState } from "./app/hooks/useLocaleState.js";
-import { usePortalTransition } from "./app/hooks/usePortalTransition.js";
-import { useRouteScrollReset } from "./app/hooks/useRouteScrollReset.js";
-import { useRouteTransitionMeta } from "./app/hooks/useRouteTransitionMeta.js";
 import { useThemeState } from "./app/hooks/useThemeState.js";
-import { getRouteMotionConfig } from "./app/transitions/routeMotion.js";
+import { useTweaks } from "./app/hooks/useTweaks.js";
+import OpsBackground from "./components/background/OpsBackground.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
-import PortalTransition from "./components/transitions/PortalTransition.jsx";
-import DemoFloatingNav from "./components/demo/DemoFloatingNav.jsx";
-import HexBackground from "./components/background/HexBackground.jsx";
+import TweaksPanel from "./components/TweaksPanel.jsx";
+
 export default function App() {
   const location = useLocation();
-  const prefersReducedMotion = useReducedMotion();
   const [theme, setTheme] = useThemeState();
   const [locale, setLocale] = useLocaleState();
+  const [tweaks, setTweak] = useTweaks(theme);
 
-  const { portalFx, previousPath } = usePortalTransition(location.pathname, prefersReducedMotion);
-
-  const {
-    isDemoSection,
-    isDemoToDemo,
-    isCrossingDemoBoundary,
-    appBottomPadding,
-    shouldShowDemoFloatingNav,
-  } = useRouteTransitionMeta(location.pathname, previousPath);
-
-  useRouteScrollReset(location.pathname, isDemoSection);
-
-  const routeMotion = getRouteMotionConfig({
-    prefersReducedMotion,
-    isDemoSection,
-    isCrossingDemoBoundary,
-    isDemoToDemo,
-  });
+  // Reset scroll on route change (instant, matching the operations console feel).
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [location.pathname]);
 
   return (
-    <div style={{ minHeight: "100dvh", paddingBottom: appBottomPadding, display: "flex", flexDirection: "column" }}>
-      <HexBackground />
-      <Navbar theme={theme} setTheme={setTheme} locale={locale} setLocale={setLocale} />
+    <>
+      <OpsBackground />
+      <div className="shell">
+        <Navbar theme={theme} setTheme={setTheme} locale={locale} setLocale={setLocale} />
 
-      <main style={{ position: "relative", flex: 1 }}>
-        <div style={{ position: "relative", zIndex: 1 }}>
-          <AnimatePresence mode="wait" initial={false}>
-            <Motion.div
-              key={location.pathname}
-              initial={routeMotion.initial}
-              animate={routeMotion.animate}
-              exit={routeMotion.exit}
-              transition={routeMotion.transition}
-            >
-              <div key={locale} className="locale-text-switch">
-                <AppRoutes locale={locale} location={location} />
-              </div>
-            </Motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+        <main key={location.pathname} className="container">
+          <AppRoutes locale={locale} location={location} />
+        </main>
 
-      <PortalTransition
-        active={portalFx.active}
-        direction={portalFx.direction}
-        animationKey={portalFx.key}
-        reducedMotion={prefersReducedMotion}
-      />
+        <Footer locale={locale} />
+      </div>
 
-      <DemoFloatingNav locale={locale} visible={shouldShowDemoFloatingNav} mode={theme} />
-
-      <Footer locale={locale} />
-    </div>
+      <TweaksPanel tweaks={tweaks} setTweak={setTweak} />
+    </>
   );
 }
