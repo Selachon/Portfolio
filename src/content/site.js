@@ -227,7 +227,7 @@ export const CONTENT = {
         es: "Trabajo en curso con una firma contable: sitio web y un portal donde automatizamos su proceso de causación de documentos e integramos su software contable. Ellos ponen el criterio contable; yo lo convierto en sistema.",
         en: "Ongoing work with an accounting firm: website plus a portal automating their document-filing process and integrating their accounting software. They bring the accounting judgment; I turn it into a system.",
       },
-      tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "En curso"],
+      tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "En producción"],
       routeKey: "caseContaGo",
     },
     {
@@ -570,12 +570,12 @@ export const CONTENT = {
         eyebrow: "// CASO — CONTAGO",
         title: "Del sitio web al portal de herramientas contables.",
         sub: "Trabajo en curso con una firma contable. Ellos ponen el criterio contable; yo lo convierto en software que les ahorra horas cada semana.",
-        tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "Automatización", "En curso"],
+        tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "Automatización", "En producción"],
         meta: [
           { k: "ROL", v: "Desarrollo + arquitectura" },
           { k: "STACK", v: "React · Express · TypeScript" },
           { k: "MODELO", v: "Co-diseño con su equipo" },
-          { k: "ESTADO", v: "En curso" },
+          { k: "ESTADO", v: "En producción" },
         ],
         summary:
           "Empezamos por la web y terminamos construyendo juntos un portal de herramientas internas. Yo no soy contador: el equipo de ContaGO define qué debe hacer cada herramienta y por qué, y yo me encargo de que exista, funcione y no se caiga.",
@@ -634,7 +634,7 @@ export const CONTENT = {
           {
             idx: "06",
             t: "En curso",
-            body: "El portal sigue creciendo. Cada tanto aparece otro proceso manual que vale la pena automatizar, y esa es exactamente la forma en la que quiero trabajar con mis clientes.",
+            body: "El portal está en producción y su equipo lo usa a diario. Sigue creciendo: cada tanto aparece otro proceso manual que vale la pena automatizar, y esa es exactamente la forma en la que quiero trabajar con mis clientes.",
             bullets: [
               "Nuevas herramientas priorizadas por el tiempo que ahorran.",
               "Mantenimiento y soporte continuo del portal y las integraciones.",
@@ -646,12 +646,12 @@ export const CONTENT = {
         eyebrow: "// CASE — CONTAGO",
         title: "From the website to a portal of accounting tools.",
         sub: "Ongoing work with an accounting firm. They bring the accounting judgment; I turn it into software that saves them hours every week.",
-        tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "Automation", "Ongoing"],
+        tags: ["Express / TypeScript", "React (Vite)", "Google Drive & Sheets API", "Siigo API", "Automation", "In production"],
         meta: [
           { k: "ROLE", v: "Development + architecture" },
           { k: "STACK", v: "React · Express · TypeScript" },
           { k: "MODEL", v: "Co-designed with their team" },
-          { k: "STATE", v: "Ongoing" },
+          { k: "STATE", v: "In production" },
         ],
         summary:
           "We started with the website and ended up building a portal of internal tools together. I am not an accountant: the ContaGO team defines what each tool must do and why, and I make sure it exists, works, and stays up.",
@@ -710,7 +710,7 @@ export const CONTENT = {
           {
             idx: "06",
             t: "Ongoing",
-            body: "The portal keeps growing. Every so often another manual process shows up that is worth automating, and that is exactly how I want to work with my clients.",
+            body: "The portal is in production and their team uses it daily. It keeps growing: every so often another manual process shows up that is worth automating, and that is exactly how I want to work with my clients.",
             bullets: [
               "New tools prioritized by the time they save.",
               "Ongoing maintenance and support of the portal and its integrations.",
