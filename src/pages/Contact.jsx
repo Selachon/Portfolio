@@ -1,16 +1,33 @@
 import { CONTENT } from "../content/site.js";
 import { useNav } from "../app/useNav.js";
+import { waHref as buildWaHref } from "../app/whatsapp.js";
 import PageHead from "../components/ui/PageHead.jsx";
 
 export default function Contact({ locale }) {
   const c = CONTENT.contact[locale] ?? CONTENT.contact.es;
   const info = CONTENT.contact.info;
   const go = useNav(locale);
-  const waHref = `${info.whatsapp}?text=${encodeURIComponent(c.whatsappPrefill)}`;
+  const waHref = buildWaHref(c.whatsappPrefill);
 
   return (
     <div className="page fade-in">
       <PageHead eyebrow={c.eyebrow} title={c.title} sub={c.sub} />
+
+      <section className="panel">
+        <span className="panel__corner tl" /><span className="panel__corner tr" />
+        <span className="panel__corner bl" /><span className="panel__corner br" />
+        <div className="display" style={{ fontSize: "clamp(20px, 2.2vw, 28px)" }}>{c.scopeTitle}</div>
+        <p style={{ color: "var(--ink-2)", margin: "8px 0 16px" }}>{c.scopeText}</p>
+        <ul className="bullets">
+          {c.scopeBullets.map((b) => <li key={b}>{b}</li>)}
+        </ul>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 24 }}>
+          <a className="btn btn--lg btn--solid" href={waHref} target="_blank" rel="noopener noreferrer">
+            {c.ctaWa} <span className="arrow">↗</span>
+          </a>
+          <a className="btn btn--lg" href={`mailto:${info.email}`}>{c.cta} <span className="arrow">→</span></a>
+        </div>
+      </section>
 
       <section>
         <div className="contact-grid">
@@ -42,10 +59,8 @@ export default function Contact({ locale }) {
       </section>
 
       <section style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-        <a className="btn btn--lg btn--solid" href={`mailto:${info.email}`}>{c.cta} <span className="arrow">→</span></a>
-        <a className="btn btn--lg" href={waHref} target="_blank" rel="noopener noreferrer">{c.ctaWa} <span className="arrow">↗</span></a>
         <button type="button" className="btn btn--lg" onClick={() => go("projects")}>
-          {locale === "es" ? "Ver proyectos" : "View projects"} <span className="arrow">→</span>
+          {locale === "es" ? "Ver casos reales" : "See real cases"} <span className="arrow">→</span>
         </button>
       </section>
 

@@ -5,8 +5,9 @@ function makeTimestamp(offset) {
   return String((Date.now() / 1000 - offset * 7) | 0).slice(-5);
 }
 
-// Live "operations" feed — scrolls through status lines on a timer.
-export default function StatusTicker({ items, label, footer }) {
+// Decorative "operations" feed — scrolls through static lines on a timer.
+// Not wired to real telemetry: `badge` and `footer` must say so on screen.
+export default function StatusTicker({ items, label, footer, badge = "STREAM · DEMO" }) {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function StatusTicker({ items, label, footer }) {
     <div className="ticker">
       <div className="ticker__head">
         <span><span className="dot" /> {label}</span>
-        <span>STREAM · LIVE</span>
+        <span>{badge}</span>
       </div>
       <div className="ticker__body">
         {visible.map((line, i) => (

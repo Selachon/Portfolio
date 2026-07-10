@@ -12,8 +12,8 @@ The goal is to show not only visual design, but also execution quality: architec
 
 - Main pages: Home, Projects, About, Contact.
 - Case studies:
-  - FARES
-  - ContaGO
+  - FARES (website, portal, mobile app, infrastructure)
+  - ContaGO (website + internal accounting tools portal)
 - Interactive demos:
   - Blog CMS demo (local CRUD flow)
   - Role-based auth demo (Admin/User interaction)

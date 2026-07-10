@@ -638,6 +638,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
   gap: 0;
   border: 1px solid var(--hair-strong);
 }
+.feats--2 { grid-template-columns: repeat(2, 1fr); }
 .feats > article {
   padding: 26px 24px 30px;
   border-right: 1px solid var(--hair);

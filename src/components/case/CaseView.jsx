@@ -1,5 +1,6 @@
 import { CONTENT } from "../../content/site.js";
 import { useNav } from "../../app/useNav.js";
+import { waHref } from "../../app/whatsapp.js";
 import PageHead from "../ui/PageHead.jsx";
 
 // Generic case study, keyed by slug from CONTENT.cases.
@@ -8,6 +9,7 @@ export default function CaseView({ slug, locale }) {
   const data = CONTENT.cases[slug];
   if (!data) return null;
   const c = data[locale] ?? data.es;
+  const contact = CONTENT.contact[locale] ?? CONTENT.contact.es;
 
   return (
     <div className="page fade-in">
@@ -82,20 +84,22 @@ export default function CaseView({ slug, locale }) {
       >
         <span className="panel__corner tl" /><span className="panel__corner tr" />
         <span className="panel__corner bl" /><span className="panel__corner br" />
-        <div>
+        <div style={{ maxWidth: "44ch" }}>
           <div className="display" style={{ fontSize: "clamp(22px, 2.6vw, 32px)" }}>
-            {locale === "es" ? "¿Hablamos de tu proyecto?" : "Want to discuss your project?"}
+            {locale === "es" ? "¿Quieres algo así para tu empresa?" : "Want something like this for your company?"}
           </div>
           <p style={{ color: "var(--ink-2)", marginTop: 8 }}>
-            {locale === "es" ? "Te propongo una ruta técnica clara y realista." : "I can map a clear, realistic technical path."}
+            {locale === "es"
+              ? "Cuéntame tu proceso y te respondo con alcance, precio y tiempo de entrega."
+              : "Tell me your process and I'll reply with scope, price and delivery time."}
           </p>
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button type="button" className="btn btn--solid" onClick={() => go("contact")}>
-            {locale === "es" ? "Contacto" : "Contact"} <span className="arrow">→</span>
-          </button>
-          <button type="button" className="btn" onClick={() => go("projects")}>
-            {locale === "es" ? "Ver proyectos" : "View projects"} <span className="arrow">→</span>
+          <a className="btn btn--solid" href={waHref(contact.whatsappPrefill)} target="_blank" rel="noopener noreferrer">
+            {locale === "es" ? "Cotizar por WhatsApp" : "Quote via WhatsApp"} <span className="arrow">↗</span>
+          </a>
+          <button type="button" className="btn" onClick={() => go("contact")}>
+            {locale === "es" ? "Otros canales" : "Other channels"} <span className="arrow">→</span>
           </button>
         </div>
       </section>
