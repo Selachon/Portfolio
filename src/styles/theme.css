@@ -1143,9 +1143,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .modal-back {
   position: fixed;
   inset: 0;
+  width: 100vw;
+  height: 100dvh;
   background: rgba(0,0,0,0.66);
   backdrop-filter: blur(4px);
-  z-index: 200;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;

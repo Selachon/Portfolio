@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { CONTENT } from "../content/site.js";
 import { useNav } from "../app/useNav.js";
 import PageHead from "../components/ui/PageHead.jsx";
@@ -76,7 +77,7 @@ export default function About({ locale }) {
         </button>
       </section>
 
-      {open && (
+      {open && createPortal(
         <div className="modal-back" onClick={() => setOpen(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button type="button" className="modal__close" onClick={() => setOpen(false)} aria-label="Close">×</button>
@@ -84,7 +85,8 @@ export default function About({ locale }) {
             <h3 className="display">{c.originTitle}</h3>
             {c.originParas.map((p, i) => <p key={i}>{p}</p>)}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
