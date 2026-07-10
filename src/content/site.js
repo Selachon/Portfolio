@@ -212,10 +212,10 @@ export const CONTENT = {
       live: "https://faresbcs.com/",
       title: { es: "FARES — De la web al portal, la app móvil y la infraestructura", en: "FARES — From website to portal, mobile app and infrastructure" },
       desc: {
-        es: "Relación de años en cuatro etapas: sitio web, portal de inspecciones, app móvil para trabajo en campo y, finalmente, el dominio corporativo que hoy unifica el acceso a todo.",
-        en: "A multi-year relationship in four stages: website, inspection portal, mobile app for fieldwork, and finally the corporate domain that now unifies access to everything.",
+        es: "Relación de años en cuatro etapas: sitio web, portal de inspecciones, app móvil offline-first para trabajo en campo y, finalmente, el dominio corporativo que hoy unifica el acceso a todo.",
+        en: "A multi-year relationship in four stages: website, inspection portal, offline-first mobile app for fieldwork, and finally the corporate domain that now unifies access to everything.",
       },
-      tags: ["React (Vite)", "Node.js / Express", "React Native", "Railway", "Windows Server", "Active Directory"],
+      tags: ["React (Vite)", "Node.js / Express", "React Native (Expo)", "Offline-first", "Windows Server", "Active Directory"],
       routeKey: "caseFares",
     },
     {
@@ -388,7 +388,7 @@ export const CONTENT = {
         eyebrow: "// CASO — FARES",
         title: "Cuatro etapas, una relación de años.",
         sub: "Empezó como un sitio web. Después vino el portal de inspecciones, la app móvil para trabajo en campo y, al final, la infraestructura que hoy unifica el acceso a todo.",
-        tags: ["React (Vite)", "Node.js / Express", "React Native", "Railway", "Windows Server", "Active Directory", "LDAPS", "Python"],
+        tags: ["React (Vite)", "Node.js / Express", "React Native (Expo)", "Offline-first", "Railway", "Windows Server", "Active Directory", "LDAPS", "Python"],
         meta: [
           { k: "ETAPAS", v: "Web · Portal · Móvil · Infra" },
           { k: "STACK", v: "React · Node · React Native" },
@@ -396,7 +396,7 @@ export const CONTENT = {
           { k: "ESTADO", v: "En producción" },
         ],
         summary:
-          "Con FARES no hubo un proyecto, hubo cuatro, cada uno abriendo la puerta al siguiente. Empezamos por la web, seguimos con el portal que reemplazó el registro manual de inspecciones, lo llevamos al campo con una app móvil y terminamos montando el dominio corporativo que hoy le da una sola identidad a todo el sistema.",
+          "Con FARES no hubo un proyecto, hubo cuatro, cada uno abriendo la puerta al siguiente. Empezamos por la web, seguimos con el portal que reemplazó el registro manual de inspecciones, lo llevamos al campo con una app móvil que funciona sin señal y terminamos montando el dominio corporativo que hoy le da una sola identidad a todo el sistema.",
         sections: [
           {
             idx: "01",
@@ -420,12 +420,13 @@ export const CONTENT = {
           },
           {
             idx: "03",
-            t: "La app móvil",
-            body: "Las inspecciones no ocurren en un escritorio. Llevar el portal al campo, en el teléfono del inspector, fue el siguiente paso natural.",
+            t: "La app móvil, pensada para trabajar sin señal",
+            body: "Las inspecciones no ocurren en un escritorio, y muchas veces tampoco donde hay cobertura. La app se construyó offline-first: el inspector registra todo sin conexión y el sistema se encarga de sincronizar cuando vuelve la red.",
             bullets: [
-              "App en React Native, reutilizando la lógica ya validada en el portal.",
-              "Registro de inspecciones en el sitio donde realmente ocurren.",
-              "Menos doble digitación: lo que se captura en campo ya queda en el sistema.",
+              "App en React Native (Expo), consumiendo el mismo backend del portal.",
+              "Inspecciones y fotos capturadas sin conexión, en el sitio donde ocurren.",
+              "Cola de sincronización persistente, con reintentos y sin registros duplicados.",
+              "Autenticación por dispositivo: credenciales en el llavero del teléfono, no en la app.",
             ],
           },
           {
@@ -477,7 +478,7 @@ export const CONTENT = {
         eyebrow: "// CASE — FARES",
         title: "Four stages, a multi-year relationship.",
         sub: "It started as a website. Then came the inspection portal, the mobile app for fieldwork, and finally the infrastructure that now unifies access to everything.",
-        tags: ["React (Vite)", "Node.js / Express", "React Native", "Railway", "Windows Server", "Active Directory", "LDAPS", "Python"],
+        tags: ["React (Vite)", "Node.js / Express", "React Native (Expo)", "Offline-first", "Railway", "Windows Server", "Active Directory", "LDAPS", "Python"],
         meta: [
           { k: "STAGES", v: "Web · Portal · Mobile · Infra" },
           { k: "STACK", v: "React · Node · React Native" },
@@ -485,7 +486,7 @@ export const CONTENT = {
           { k: "STATE", v: "In production" },
         ],
         summary:
-          "With FARES there was not one project but four, each opening the door to the next. We started with the website, moved on to the portal that replaced manual inspection logging, took it into the field with a mobile app, and finally deployed the corporate domain that today gives the whole system a single identity.",
+          "With FARES there was not one project but four, each opening the door to the next. We started with the website, moved on to the portal that replaced manual inspection logging, took it into the field with a mobile app that works without signal, and finally deployed the corporate domain that today gives the whole system a single identity.",
         sections: [
           {
             idx: "01",
@@ -509,12 +510,13 @@ export const CONTENT = {
           },
           {
             idx: "03",
-            t: "The mobile app",
-            body: "Inspections do not happen at a desk. Bringing the portal into the field, onto the inspector's phone, was the natural next step.",
+            t: "The mobile app, built to work without signal",
+            body: "Inspections do not happen at a desk, and often not where there is coverage either. The app was built offline-first: the inspector records everything without a connection, and the system syncs once the network returns.",
             bullets: [
-              "React Native app, reusing the logic already validated in the portal.",
-              "Inspections recorded where they actually take place.",
-              "Less double entry: what is captured in the field is already in the system.",
+              "React Native (Expo) app, consuming the same backend as the portal.",
+              "Inspections and photos captured offline, where the work happens.",
+              "Persistent sync queue, with retries and no duplicate records.",
+              "Device-based auth: credentials live in the phone's keychain, not in the app.",
             ],
           },
           {
