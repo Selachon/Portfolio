@@ -199,12 +199,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .nav__brand svg { display: block; }
 .nav__logo {
   display: block;
-  height: 46px;
+  height: 72px;
   width: auto;
   max-width: min(70vw, 320px);
   object-fit: contain;
 }
-@media (max-width: 600px) { .nav__logo { height: 38px; } }
+@media (max-width: 600px) { .nav__logo { height: 56px; } }
 .nav__name {
   font-family: var(--f-display);
   font-size: 22px;

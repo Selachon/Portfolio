@@ -246,7 +246,7 @@ input[type="date"] {
 .portales__logo {
   display: block;
   width: auto;
-  height: 31px;
+  height: 60px;
   animation: portales-logo 4.8s ease-in-out infinite;
 }
 .portales__sesion {
@@ -708,7 +708,7 @@ input[type="date"] {
 }
 .marca img {
   display: block;
-  height: 30px;
+  height: 58px;
   width: auto;
   max-width: 100%;
   object-fit: contain;
@@ -1306,7 +1306,7 @@ textarea {
   padding: 34px 32px 30px;
 }
 .entrada__marca {
-  height: 34px;
+  height: 58px;
   width: auto;
   margin-bottom: 22px;
 }
@@ -1818,8 +1818,7 @@ textarea {
     align-items: flex-start;
   }
   .portales__logo {
-    height: 25px;
-    margin-top: 4px;
+    height: 44px;
   }
   .portales__usuario {
     display: none;

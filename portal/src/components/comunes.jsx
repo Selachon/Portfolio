@@ -75,20 +75,32 @@ export function NumeroAnimado({ valor, formatear, sufijo = "", duracion = 760 })
   const numeroSeguro = Number.isFinite(objetivo) ? objetivo : 0;
   const [mostrado, setMostrado] = useState(0);
   const mostradoRef = useRef(0);
-  const [direccion, setDireccion] = useState("sube");
-  const [revision, setRevision] = useState(0);
+  const [transicion, setTransicion] = useState({
+    objetivo: numeroSeguro,
+    direccion: numeroSeguro >= 0 ? "sube" : "baja",
+    revision: 0,
+  });
+
+  if (transicion.objetivo !== numeroSeguro) {
+    setTransicion({
+      objetivo: numeroSeguro,
+      direccion: numeroSeguro >= mostrado ? "sube" : "baja",
+      revision: transicion.revision + 1,
+    });
+  }
+
+  const { direccion, revision } = transicion;
 
   useEffect(() => {
     const inicio = mostradoRef.current;
     const movimientoReducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    setDireccion(numeroSeguro >= inicio ? "sube" : "baja");
-    setRevision((actual) => actual + 1);
-
     if (movimientoReducido || inicio === numeroSeguro) {
-      mostradoRef.current = numeroSeguro;
-      setMostrado(numeroSeguro);
-      return undefined;
+      const cuadro = requestAnimationFrame(() => {
+        mostradoRef.current = numeroSeguro;
+        setMostrado(numeroSeguro);
+      });
+      return () => cancelAnimationFrame(cuadro);
     }
 
     const empezo = performance.now();
