@@ -209,14 +209,6 @@ input[type="date"] {
   color: var(--ink-3);
   margin-top: 8px;
 }
-/* Dos versiones del logotipo, no un filtro: invertir le cambiaba el rosa de la
-   marca por un granate. Cada tema muestra la suya y oculta la otra.
-   Van con selector de elemento a propósito: `.marca img` ya fija un display y
-   con menos peso estas reglas perdían, y se veían los dos logotipos a la vez. */
-img.solo-claro { display: none; }
-[data-theme="light"] img.solo-oscuro { display: none; }
-[data-theme="light"] img.solo-claro { display: block; }
-
 .nav-enlace {
   position: relative;
   display: flex;
