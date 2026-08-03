@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSesion } from "../sesion.js";
 import { Aviso, Campo } from "../components/comunes.jsx";
 import Logo from "../components/Logo.jsx";
 
 export default function Login() {
   const { entrar } = useSesion();
+  const navegar = useNavigate();
   const [correo, setCorreo] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [error, setError] = useState(null);
@@ -17,6 +19,7 @@ export default function Login() {
 
     try {
       await entrar(correo, contrasena);
+      navegar("/", { replace: true });
     } catch (fallo) {
       setError(fallo.message);
     } finally {

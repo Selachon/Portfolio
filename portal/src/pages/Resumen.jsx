@@ -98,7 +98,7 @@ export default function Resumen() {
             esquinas
             titulo="Presupuesto del mes"
             extra={
-              <Link to="/presupuesto" className="mono-uppr">
+              <Link to="/finanzas/presupuesto" className="mono-uppr">
                 ver →
               </Link>
             }
@@ -121,7 +121,7 @@ export default function Resumen() {
             esquinas
             titulo="Deudas"
             extra={
-              <Link to="/deudas" className="mono-uppr">
+              <Link to="/finanzas/deudas" className="mono-uppr">
                 ver →
               </Link>
             }
@@ -143,7 +143,7 @@ export default function Resumen() {
           esquinas
           titulo="Extractos del mes"
           extra={
-            <Link to="/importar" className="mono-uppr">
+            <Link to="/finanzas/importar" className="mono-uppr">
               subir →
             </Link>
           }

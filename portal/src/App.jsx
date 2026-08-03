@@ -1,10 +1,11 @@
 import { Component, lazy, Suspense, useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeftRight,
   ChartNoAxesCombined,
   FileText,
+  Grid2X2,
   LayoutDashboard,
   LogOut,
   Moon,
@@ -28,6 +29,7 @@ import Reportes from "./pages/Reportes.jsx";
 import Presupuesto from "./pages/Presupuesto.jsx";
 import Deudas from "./pages/Deudas.jsx";
 import Ajustes from "./pages/Ajustes.jsx";
+import Portales from "./pages/Portales.jsx";
 
 const CLAVE_RECARGA_MODULO = "kora:recarga-modulo:analitica";
 
@@ -51,14 +53,24 @@ async function cargarAnalitica() {
 const Analitica = lazy(cargarAnalitica);
 
 const MENU = [
-  { a: "/", texto: "Resumen", Icono: LayoutDashboard },
-  { a: "/analitica", texto: "Analítica", Icono: ChartNoAxesCombined },
-  { a: "/movimientos", texto: "Movimientos", Icono: ArrowLeftRight },
-  { a: "/importar", texto: "Importar", Icono: Upload },
-  { a: "/reportes", texto: "Reportes", Icono: FileText },
-  { a: "/presupuesto", texto: "Presupuesto", Icono: Wallet },
-  { a: "/deudas", texto: "Deudas", Icono: Landmark },
-  { a: "/ajustes", texto: "Ajustes", Icono: Settings },
+  { a: "/finanzas", texto: "Resumen", Icono: LayoutDashboard },
+  { a: "/finanzas/analitica", texto: "Analítica", Icono: ChartNoAxesCombined },
+  { a: "/finanzas/movimientos", texto: "Movimientos", Icono: ArrowLeftRight },
+  { a: "/finanzas/importar", texto: "Importar", Icono: Upload },
+  { a: "/finanzas/reportes", texto: "Reportes", Icono: FileText },
+  { a: "/finanzas/presupuesto", texto: "Presupuesto", Icono: Wallet },
+  { a: "/finanzas/deudas", texto: "Deudas", Icono: Landmark },
+  { a: "/finanzas/ajustes", texto: "Ajustes", Icono: Settings },
+];
+
+const RUTAS_ANTERIORES = [
+  ["/analitica", "/finanzas/analitica"],
+  ["/movimientos", "/finanzas/movimientos"],
+  ["/importar", "/finanzas/importar"],
+  ["/reportes", "/finanzas/reportes"],
+  ["/presupuesto", "/finanzas/presupuesto"],
+  ["/deudas", "/finanzas/deudas"],
+  ["/ajustes", "/finanzas/ajustes"],
 ];
 
 class LimiteVista extends Component {
@@ -94,21 +106,24 @@ function Vistas() {
   return (
     <LimiteVista key={ubicacion.pathname}>
       <Routes>
-        <Route path="/" element={<Resumen />} />
+        <Route path="/finanzas" element={<Resumen />} />
         <Route
-          path="/analitica"
+          path="/finanzas/analitica"
           element={
             <Suspense fallback={<Cargando texto="Abriendo analítica" />}>
               <Analitica />
             </Suspense>
           }
         />
-        <Route path="/movimientos" element={<Movimientos />} />
-        <Route path="/importar" element={<Importar />} />
-        <Route path="/reportes" element={<Reportes />} />
-        <Route path="/presupuesto" element={<Presupuesto />} />
-        <Route path="/deudas" element={<Deudas />} />
-        <Route path="/ajustes" element={<Ajustes />} />
+        <Route path="/finanzas/movimientos" element={<Movimientos />} />
+        <Route path="/finanzas/importar" element={<Importar />} />
+        <Route path="/finanzas/reportes" element={<Reportes />} />
+        <Route path="/finanzas/presupuesto" element={<Presupuesto />} />
+        <Route path="/finanzas/deudas" element={<Deudas />} />
+        <Route path="/finanzas/ajustes" element={<Ajustes />} />
+        {RUTAS_ANTERIORES.map(([anterior, nueva]) => (
+          <Route key={anterior} path={anterior} element={<Navigate to={nueva} replace />} />
+        ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </LimiteVista>
@@ -117,6 +132,7 @@ function Vistas() {
 
 export default function App() {
   const { usuario, cargando, salir } = useSesion();
+  const ubicacion = useLocation();
   const [tema, setTema] = useState(temaInicial);
 
   useEffect(() => {
@@ -126,6 +142,21 @@ export default function App() {
   if (cargando) return <Cargando texto="Abriendo el portal" />;
   if (!usuario) return <Login />;
   if (usuario.debeCambiarContrasena) return <CambiarContrasena />;
+
+  const cambiarTema = () => setTema(tema === "claro" ? "oscuro" : "claro");
+
+  if (ubicacion.pathname === "/" || ubicacion.pathname === "/portales") {
+    return (
+      <LimiteVista key={ubicacion.pathname}>
+        <Portales
+          usuario={usuario}
+          tema={tema}
+          alCambiarTema={cambiarTema}
+          alSalir={salir}
+        />
+      </LimiteVista>
+    );
+  }
 
   return (
     <div className="app">
@@ -139,14 +170,20 @@ export default function App() {
       <nav className="lateral">
         <div className="marca">
           <Logo />
-          <span className="marca__sub">Portal financiero</span>
+          <span className="marca__sub">Finanzas</span>
         </div>
+
+        <Link to="/" className="selector-portales-trigger">
+          <Grid2X2 size={14} />
+          <span>Todos los portales</span>
+          <span aria-hidden="true">↗</span>
+        </Link>
 
         {MENU.map((opcion) => (
           <NavLink
             key={opcion.a}
             to={opcion.a}
-            end={opcion.a === "/"}
+            end={opcion.a === "/finanzas"}
             className={({ isActive }) => `nav-enlace ${isActive ? "activo" : ""}`}
           >
             <opcion.Icono size={14} />
@@ -164,7 +201,7 @@ export default function App() {
           <div className="acciones">
             <button
               className="icono"
-              onClick={() => setTema(tema === "claro" ? "oscuro" : "claro")}
+              onClick={cambiarTema}
               aria-label={tema === "claro" ? "Cambiar a tema oscuro" : "Cambiar a tema claro"}
               title="Cambiar tema"
             >
