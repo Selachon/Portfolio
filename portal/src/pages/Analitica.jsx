@@ -192,7 +192,9 @@ export default function Analitica() {
         />
         <Kpi
           etiqueta="Tasa de ahorro"
-          valor={indicadores.tasaAhorro === null ? "—" : `${indicadores.tasaAhorro}%`}
+          valor={indicadores.tasaAhorro === null ? "—" : undefined}
+          numero={indicadores.tasaAhorro}
+          sufijo="%"
           tono={indicadores.tasaAhorro === null ? "" : indicadores.tasaAhorro >= 0 ? "positivo" : "negativo"}
           pie="Balance sobre ingresos"
         />
@@ -204,7 +206,7 @@ export default function Analitica() {
         />
         <Kpi
           etiqueta="Días sin gasto"
-          valor={`${indicadores.diasSinGasto}`}
+          numero={indicadores.diasSinGasto}
           tono=""
           pie={`de ${datos.periodo.diasTranscurridos} día(s) observados`}
         />

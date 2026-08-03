@@ -66,7 +66,7 @@ export default function Presupuesto() {
           <Kpi etiqueta="Ingresos planeados" centavos={datos.resumen.ingresosPlaneados} />
           <Kpi
             etiqueta="Pendiente de pagar"
-            valor={dinero(datos.resumen.pendientesCentavos)}
+            centavos={datos.resumen.pendientesCentavos}
             pie={`${datos.resumen.pendientes} concepto(s) sin marcar`}
             tono=""
           />

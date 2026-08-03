@@ -252,9 +252,9 @@ function Revision({ revision, trabajando, alConfirmar, alCancelar }) {
   return (
     <>
       <div className="rejilla aparece" style={{ marginBottom: 16 }}>
-        <Kpi etiqueta="Nuevos" valor={String(resumen.nuevos)} tono="" />
-        <Kpi etiqueta="Repetidos" valor={String(resumen.duplicados)} tono="" />
-        <Kpi etiqueta="Con problemas" valor={String(resumen.invalidos)} tono="" />
+        <Kpi etiqueta="Nuevos" numero={resumen.nuevos} tono="" />
+        <Kpi etiqueta="Repetidos" numero={resumen.duplicados} tono="" />
+        <Kpi etiqueta="Con problemas" numero={resumen.invalidos} tono="" />
         <Kpi
           etiqueta="Suma de lo elegido"
           centavos={suma}

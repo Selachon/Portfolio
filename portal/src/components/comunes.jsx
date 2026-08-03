@@ -7,6 +7,8 @@ import { cloneElement, isValidElement, useEffect, useId, useRef, useState } from
 import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { dinero } from "../api.js";
 
+const FORMATO_ENTERO = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
+
 export function Cargando({ texto = "Cargando" }) {
   return <div className="cargando">{texto}</div>;
 }
@@ -68,15 +70,89 @@ export function Aviso({ tipo = "atencion", children }) {
   );
 }
 
-export function Kpi({ etiqueta, valor, moneda = "COP", centavos, pie, tono }) {
-  const texto = centavos === undefined ? valor : dinero(centavos, moneda);
+export function NumeroAnimado({ valor, formatear, sufijo = "", duracion = 760 }) {
+  const objetivo = Number(valor);
+  const numeroSeguro = Number.isFinite(objetivo) ? objetivo : 0;
+  const [mostrado, setMostrado] = useState(0);
+  const mostradoRef = useRef(0);
+  const [direccion, setDireccion] = useState("sube");
+  const [revision, setRevision] = useState(0);
+
+  useEffect(() => {
+    const inicio = mostradoRef.current;
+    const movimientoReducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    setDireccion(numeroSeguro >= inicio ? "sube" : "baja");
+    setRevision((actual) => actual + 1);
+
+    if (movimientoReducido || inicio === numeroSeguro) {
+      mostradoRef.current = numeroSeguro;
+      setMostrado(numeroSeguro);
+      return undefined;
+    }
+
+    const empezo = performance.now();
+    let cuadro;
+
+    const avanzar = (ahora) => {
+      const progreso = Math.min((ahora - empezo) / duracion, 1);
+      const suavizado = 1 - (1 - progreso) ** 4;
+      const actual = inicio + (numeroSeguro - inicio) * suavizado;
+
+      mostradoRef.current = actual;
+      setMostrado(actual);
+
+      if (progreso < 1) {
+        cuadro = requestAnimationFrame(avanzar);
+      } else {
+        mostradoRef.current = numeroSeguro;
+        setMostrado(numeroSeguro);
+      }
+    };
+
+    cuadro = requestAnimationFrame(avanzar);
+    return () => cancelAnimationFrame(cuadro);
+  }, [duracion, numeroSeguro]);
+
+  const presentar = formatear ?? ((numero) => FORMATO_ENTERO.format(Math.round(numero)));
+  const textoFinal = `${presentar(numeroSeguro)}${sufijo}`;
+  const textoMostrado = `${presentar(mostrado)}${sufijo}`;
+
+  return (
+    <span className={`numero-animado numero-animado--${direccion}`} aria-label={textoFinal}>
+      <span className="numero-animado__reserva" aria-hidden="true">{textoFinal}</span>
+      <span key={revision} className="numero-animado__valor" aria-hidden="true">
+        {textoMostrado}
+      </span>
+    </span>
+  );
+}
+
+export function Kpi({ etiqueta, valor, numero, sufijo = "", moneda = "COP", centavos, pie, tono }) {
+  const esDinero = centavos !== undefined;
+  const entradaNumerica = esDinero ? centavos : numero;
+  const numeroAnimable = Number(entradaNumerica);
+  const sePuedeAnimar = entradaNumerica !== null
+    && entradaNumerica !== undefined
+    && Number.isFinite(numeroAnimable);
   const clase = tono ?? (centavos === undefined ? "" : centavos < 0 ? "negativo" : "positivo");
 
   return (
     <div className="kpi">
       <Esquinas />
       <div className="kpi__etiqueta">{etiqueta}</div>
-      <div className={`kpi__valor ${clase}`}>{texto}</div>
+      <div className={`kpi__valor ${clase}`}>
+        {sePuedeAnimar ? (
+          <NumeroAnimado
+            key={esDinero ? moneda : sufijo}
+            valor={numeroAnimable}
+            sufijo={sufijo}
+            formatear={esDinero ? (actual) => dinero(actual, moneda) : undefined}
+          />
+        ) : (
+          esDinero ? dinero(centavos, moneda) : valor
+        )}
+      </div>
       {pie && <div className="kpi__pie">{pie}</div>}
     </div>
   );

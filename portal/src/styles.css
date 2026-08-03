@@ -388,10 +388,51 @@ h3 {
   margin-top: 9px;
   letter-spacing: -0.03em;
 }
+.numero-animado {
+  display: inline-grid;
+  grid-template-areas: "numero";
+  overflow: hidden;
+  perspective: 360px;
+  vertical-align: bottom;
+}
+.numero-animado__reserva,
+.numero-animado__valor {
+  grid-area: numero;
+}
+.numero-animado__reserva {
+  visibility: hidden;
+}
+.numero-animado__valor {
+  display: block;
+  transform-origin: 50% 55%;
+  will-change: transform, opacity, filter;
+}
+.numero-animado--sube .numero-animado__valor {
+  animation: marcador-sube 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.numero-animado--baja .numero-animado__valor {
+  animation: marcador-baja 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 .kpi__pie {
   margin-top: 6px;
   font-size: 12px;
   color: var(--ink-3);
+}
+
+@keyframes marcador-sube {
+  from {
+    opacity: 0.28;
+    transform: translateY(0.42em) rotateX(-52deg);
+    filter: blur(1.5px);
+  }
+}
+
+@keyframes marcador-baja {
+  from {
+    opacity: 0.28;
+    transform: translateY(-0.42em) rotateX(52deg);
+    filter: blur(1.5px);
+  }
 }
 
 .positivo { color: var(--ok); }

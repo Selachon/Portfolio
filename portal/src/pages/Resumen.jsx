@@ -9,6 +9,7 @@ import {
   Cargando,
   Kpi,
   MetaLinea,
+  NumeroAnimado,
   Panel,
   SelectorMoneda,
   SelectorPeriodo,
@@ -103,7 +104,12 @@ export default function Resumen() {
             }
           >
             <div className="kpi__etiqueta">Pendiente de pagar</div>
-            <div className="kpi__valor">{dinero(presupuesto.resumen.pendientesCentavos)}</div>
+            <div className="kpi__valor">
+              <NumeroAnimado
+                valor={presupuesto.resumen.pendientesCentavos}
+                formatear={(actual) => dinero(actual)}
+              />
+            </div>
             <p className="tenue" style={{ marginTop: 8 }}>
               {presupuesto.resumen.pendientes} concepto(s) sin marcar como pagados.
             </p>
@@ -121,7 +127,12 @@ export default function Resumen() {
             }
           >
             <div className="kpi__etiqueta">Saldo pendiente</div>
-            <div className="kpi__valor negativo">{dinero(deudas.resumen.restanteCentavos)}</div>
+            <div className="kpi__valor negativo">
+              <NumeroAnimado
+                valor={deudas.resumen.restanteCentavos}
+                formatear={(actual) => dinero(actual)}
+              />
+            </div>
             <p className="tenue" style={{ marginTop: 8 }}>
               {deudas.resumen.cuotasPendientes} cuota(s) por pagar.
             </p>
