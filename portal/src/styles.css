@@ -713,6 +713,24 @@ textarea {
   margin-top: 2px;
 }
 
+.fallo-vista {
+  min-height: min(560px, 70vh);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.fallo-vista svg,
+.fallo-vista h2 {
+  color: var(--bad);
+}
+.fallo-vista p {
+  max-width: 420px;
+  margin: 0 0 6px;
+  color: var(--ink-3);
+}
+
 /* ── Barra de proporción ─────────────────────────────────────────────────── */
 
 .barra {

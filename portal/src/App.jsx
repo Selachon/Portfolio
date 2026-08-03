@@ -1,12 +1,14 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { Component, lazy, Suspense, useEffect, useState } from "react";
+import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
+  AlertTriangle,
   ArrowLeftRight,
   ChartNoAxesCombined,
   FileText,
   LayoutDashboard,
   LogOut,
   Moon,
+  RefreshCw,
   Settings,
   Sun,
   Upload,
@@ -27,7 +29,26 @@ import Presupuesto from "./pages/Presupuesto.jsx";
 import Deudas from "./pages/Deudas.jsx";
 import Ajustes from "./pages/Ajustes.jsx";
 
-const Analitica = lazy(() => import("./pages/Analitica.jsx"));
+const CLAVE_RECARGA_MODULO = "kora:recarga-modulo:analitica";
+
+async function cargarAnalitica() {
+  try {
+    const modulo = await import("./pages/Analitica.jsx");
+    sessionStorage.removeItem(CLAVE_RECARGA_MODULO);
+    return modulo;
+  } catch (error) {
+    if (!sessionStorage.getItem(CLAVE_RECARGA_MODULO)) {
+      sessionStorage.setItem(CLAVE_RECARGA_MODULO, "1");
+      window.location.reload();
+      return new Promise(() => {});
+    }
+
+    sessionStorage.removeItem(CLAVE_RECARGA_MODULO);
+    throw error;
+  }
+}
+
+const Analitica = lazy(cargarAnalitica);
 
 const MENU = [
   { a: "/", texto: "Resumen", Icono: LayoutDashboard },
@@ -39,6 +60,60 @@ const MENU = [
   { a: "/deudas", texto: "Deudas", Icono: Landmark },
   { a: "/ajustes", texto: "Ajustes", Icono: Settings },
 ];
+
+class LimiteVista extends Component {
+  state = { fallo: null };
+
+  static getDerivedStateFromError(fallo) {
+    return { fallo };
+  }
+
+  componentDidCatch(fallo, informacion) {
+    console.error("No se pudo abrir la vista", fallo, informacion);
+  }
+
+  render() {
+    if (!this.state.fallo) return this.props.children;
+
+    return (
+      <section className="fallo-vista" role="alert">
+        <AlertTriangle size={24} />
+        <h2>No se pudo abrir esta sección</h2>
+        <p>La versión del portal pudo cambiar mientras estaba abierta.</p>
+        <button className="principal" onClick={() => window.location.reload()}>
+          <RefreshCw size={14} /> Recargar portal
+        </button>
+      </section>
+    );
+  }
+}
+
+function Vistas() {
+  const ubicacion = useLocation();
+
+  return (
+    <LimiteVista key={ubicacion.pathname}>
+      <Routes>
+        <Route path="/" element={<Resumen />} />
+        <Route
+          path="/analitica"
+          element={
+            <Suspense fallback={<Cargando texto="Abriendo analítica" />}>
+              <Analitica />
+            </Suspense>
+          }
+        />
+        <Route path="/movimientos" element={<Movimientos />} />
+        <Route path="/importar" element={<Importar />} />
+        <Route path="/reportes" element={<Reportes />} />
+        <Route path="/presupuesto" element={<Presupuesto />} />
+        <Route path="/deudas" element={<Deudas />} />
+        <Route path="/ajustes" element={<Ajustes />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </LimiteVista>
+  );
+}
 
 export default function App() {
   const { usuario, cargando, salir } = useSesion();
@@ -103,24 +178,7 @@ export default function App() {
       </nav>
 
       <main className="contenido">
-        <Routes>
-          <Route path="/" element={<Resumen />} />
-          <Route
-            path="/analitica"
-            element={
-              <Suspense fallback={<Cargando texto="Abriendo analítica" />}>
-                <Analitica />
-              </Suspense>
-            }
-          />
-          <Route path="/movimientos" element={<Movimientos />} />
-          <Route path="/importar" element={<Importar />} />
-          <Route path="/reportes" element={<Reportes />} />
-          <Route path="/presupuesto" element={<Presupuesto />} />
-          <Route path="/deudas" element={<Deudas />} />
-          <Route path="/ajustes" element={<Ajustes />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Vistas />
       </main>
     </div>
   );

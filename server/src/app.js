@@ -5,7 +5,7 @@
 // cookies de terceros (que Safari bloquea), ni aflojar el CSP.
 
 import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
@@ -62,7 +62,7 @@ function registerSecurityHeaders(app) {
     }
 
     // Datos financieros: que ningún proxy ni el navegador los guarde en caché.
-    if (request.url.startsWith("/api/")) {
+    if (request.url.startsWith("/api/") || reply.statusCode >= 400) {
       reply.header("Cache-Control", "no-store");
     } else if (request.url.startsWith("/assets/")) {
       // Los assets llevan hash en el nombre: se pueden cachear para siempre.
@@ -129,6 +129,15 @@ export async function buildApp({ logger = true } = {}) {
         .type("text/plain; charset=utf-8")
         .send("El portal no está compilado. Ejecuta `npm run build` dentro de portal/.");
     }
+
+    const ruta = request.url.split("?", 1)[0];
+    if (ruta.startsWith("/assets/") || extname(ruta)) {
+      return reply
+        .code(404)
+        .type("text/plain; charset=utf-8")
+        .send("Recurso no encontrado.");
+    }
+
     // Cualquier otra ruta la resuelve el enrutador de la SPA.
     return reply.sendFile("index.html");
   });
