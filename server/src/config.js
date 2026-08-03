@@ -20,6 +20,9 @@ function readBool(name, fallback) {
 
 const nodeEnv = process.env.NODE_ENV ?? "development";
 const isProduction = nodeEnv === "production";
+const renderHostname = process.env.RENDER_EXTERNAL_HOSTNAME;
+const publicOrigin = process.env.PUBLIC_ORIGIN
+  ?? (renderHostname ? `https://${renderHostname}` : "http://localhost:8787");
 
 export const config = Object.freeze({
   nodeEnv,
@@ -31,7 +34,7 @@ export const config = Object.freeze({
   mongodbDatabase: process.env.MONGODB_DATABASE ?? "kora",
 
   // Origen público del portal, usado para cookies y cabeceras de seguridad.
-  publicOrigin: process.env.PUBLIC_ORIGIN ?? "http://localhost:8787",
+  publicOrigin,
 
   session: Object.freeze({
     cookieName: "kora_sesion",
