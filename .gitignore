@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Portal financiero: nada de esto puede acabar en un repositorio público.
+.env
+.env.*
+!.env.example
+.pglite/
+# Extractos y respaldos reales que se usen en pruebas locales.
+extractos-reales/
+*.respaldo.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
