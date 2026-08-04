@@ -20,6 +20,8 @@ dist-ssr
 # Extractos y respaldos reales que se usen en pruebas locales.
 extractos-reales/
 *.respaldo.json
+__pycache__/
+*.py[cod]
 
 # Editor directories and files
 .vscode/*

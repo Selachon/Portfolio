@@ -5,7 +5,7 @@ import {
   FileText,
   LogOut,
   Moon,
-  Settings,
+  ServerCog,
   Sun,
   Users,
   Wallet,
@@ -25,14 +25,15 @@ const PORTALES = [
     Icono: Wallet,
   },
   {
-    id: "operaciones",
+    id: "infraestructura",
     indice: "02",
-    nombre: "Operaciones",
-    area: "Procesos y ejecución",
-    descripcion: "El espacio operativo de Kora está tomando forma.",
-    estado: "En preparación",
+    nombre: "Infraestructura",
+    area: "Proxmox · Iroha",
+    descripcion: "Estado, capacidad, CT, VMs, discos, alertas y actividad.",
+    estado: "Disponible",
+    ruta: "/infraestructura",
     color: "#f59e0b",
-    Icono: Settings,
+    Icono: ServerCog,
   },
   {
     id: "documentos",
@@ -246,7 +247,7 @@ export default function Portales({ usuario, tema, alCambiarTema, alSalir }) {
 
       <footer className="portales__pie">
         <span>Kora / Directorio privado</span>
-        <span>01 disponible · 03 en preparación</span>
+        <span>02 disponibles · 02 en preparación</span>
       </footer>
     </div>
   );

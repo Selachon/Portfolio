@@ -1,8 +1,8 @@
-# Portal financiero privado
+# Portal privado de Kora
 
-Portal cerrado para llevar las cuentas mensuales entre dos personas: el
-propietario y su asesor financiero. Sustituye el flujo actual de hoja de cálculo
-más conversión manual de extractos.
+Portal cerrado con espacios independientes. Finanzas sustituye el flujo actual
+de hoja de cálculo y extractos; Infraestructura monitoriza Proxmox sin exponer
+la red doméstica a Render.
 
 No tiene nada que ver con el sitio público de este mismo repositorio: son dos
 aplicaciones independientes, con despliegues independientes.
@@ -24,6 +24,8 @@ aplicaciones independientes, con despliegues independientes.
   quién te debe qué.
 - **Ajustes** — cuentas, reglas de clasificación automática, personas con acceso
   y registro de auditoría.
+- **Infraestructura** — estado vivo de nodos, CT y VMs, históricos, discos,
+  SMART, almacenamiento, red, tareas, actualizaciones, backups y alertas.
 
 ## Decisiones que conviene conocer
 
@@ -81,6 +83,7 @@ server/            API en Fastify; también sirve la SPA compilada
   scripts/         migraciones desde la hoja y desde PGlite
   test/            pruebas (datos inventados, formatos reales)
 portal/            SPA en React que consume la API
+agent/proxmox/      colector sin dependencias e instalación systemd para PVE
 ```
 
 ## Desarrollo local
@@ -129,6 +132,62 @@ En una base completamente vacía, añade temporalmente
 el panel de Render. Bórralas después de cambiar la contraseña inicial.
 
 Los índices se verifican automáticamente en cada arranque.
+
+## Monitoreo de Proxmox
+
+La integración es de salida: el agente consulta `127.0.0.1:8006` dentro de
+Iroha y publica snapshots por HTTPS en Render. No se abre el puerto 8006, Render
+no entra a Tailscale y el secreto del token de Proxmox nunca sale del nodo.
+
+### 1. Rotar y preparar el token de Proxmox
+
+Todo secreto pegado en un chat debe considerarse comprometido. Elimina el token
+anterior, vuelve a crearlo y conserva el nuevo valor fuera del repositorio:
+
+```bash
+pveum user token remove kora-monitor@pve portal
+pveum user token add kora-monitor@pve portal -privsep 1
+pveum acl modify / -token 'kora-monitor@pve!portal' -role PVEAuditor
+pveum user token permissions kora-monitor@pve portal
+```
+
+### 2. Configurar Render
+
+Genera un secreto distinto al de Proxmox:
+
+```bash
+openssl rand -hex 32
+```
+
+Guárdalo como `PROXMOX_INGEST_TOKEN` en **Environment** del servicio de Render.
+El Blueprint ya declara la variable y las retenciones. Despliega la versión
+nueva antes de encender el agente.
+
+### 3. Instalar el agente en Iroha
+
+Con el repositorio actualizado dentro de Iroha:
+
+```bash
+cd agent/proxmox
+./install.sh
+nano /etc/kora-proxmox-agent.env
+```
+
+En ese archivo coloca el secreto nuevo de Proxmox y, en `KORA_INGEST_TOKEN`, el
+mismo secreto generado para Render. El archivo queda con permisos `0600`.
+
+Prueba una captura antes de habilitar el temporizador:
+
+```bash
+systemctl start kora-proxmox-agent.service
+journalctl -u kora-proxmox-agent.service -n 30 --no-pager
+systemctl enable --now kora-proxmox-agent.timer
+systemctl list-timers kora-proxmox-agent.timer
+```
+
+El servicio usa un usuario dinámico, endurecimiento de systemd y conexiones de
+solo lectura. Envía cada 20 segundos. MongoDB conserva datos crudos por 7 días,
+puntos de 5 minutos por 31 días y puntos horarios/diarios por 400 días.
 
 ### Límites del plan gratuito
 

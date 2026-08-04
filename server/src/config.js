@@ -62,6 +62,16 @@ export const config = Object.freeze({
 
   // Tamaño máximo de un extracto subido.
   maxUploadBytes: readInt("MAX_UPLOAD_BYTES", 15 * 1024 * 1024),
+
+  proxmox: Object.freeze({
+    // Este secreto autentica al colector que empuja telemetría hacia Render. No
+    // es el token de Proxmox: ese permanece únicamente dentro de Iroha.
+    ingestToken: process.env.PROXMOX_INGEST_TOKEN ?? null,
+    staleAfterSeconds: readInt("PROXMOX_STALE_AFTER_SECONDS", 120),
+    rawRetentionDays: readInt("PROXMOX_RAW_RETENTION_DAYS", 7),
+    rollupRetentionDays: readInt("PROXMOX_ROLLUP_RETENTION_DAYS", 31),
+    historyRetentionDays: readInt("PROXMOX_HISTORY_RETENTION_DAYS", 400),
+  }),
 });
 
 export function assertProductionConfig() {
@@ -75,6 +85,9 @@ export function assertProductionConfig() {
   }
   if (!config.session.secureCookie) {
     problemas.push("SESSION_SECURE_COOKIE no puede desactivarse en producción.");
+  }
+  if (config.proxmox.ingestToken && config.proxmox.ingestToken.length < 32) {
+    problemas.push("PROXMOX_INGEST_TOKEN debe tener al menos 32 caracteres.");
   }
 
   if (problemas.length > 0) {

@@ -35,3 +35,15 @@ services:
 
       - key: SESSION_SECURE_COOKIE
         value: "true"
+
+      # Secreto distinto al token de Proxmox. Autentica al agente de Iroha.
+      - key: PROXMOX_INGEST_TOKEN
+        sync: false
+      - key: PROXMOX_STALE_AFTER_SECONDS
+        value: "120"
+      - key: PROXMOX_RAW_RETENTION_DAYS
+        value: "7"
+      - key: PROXMOX_ROLLUP_RETENTION_DAYS
+        value: "31"
+      - key: PROXMOX_HISTORY_RETENTION_DAYS
+        value: "400"

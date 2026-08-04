@@ -2,8 +2,11 @@ import { Component, lazy, Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import {
   AlertTriangle,
+  Activity,
   ArrowLeftRight,
+  Boxes,
   ChartNoAxesCombined,
+  Database,
   FileText,
   Grid2X2,
   LayoutDashboard,
@@ -15,6 +18,7 @@ import {
   Upload,
   Wallet,
   Landmark,
+  ServerCog,
 } from "lucide-react";
 import { useSesion } from "./sesion.js";
 import { aplicarTema, temaInicial } from "./tema.js";
@@ -51,8 +55,9 @@ async function cargarAnalitica() {
 }
 
 const Analitica = lazy(cargarAnalitica);
+const Infraestructura = lazy(() => import("./pages/Infraestructura.jsx"));
 
-const MENU = [
+const MENU_FINANZAS = [
   { a: "/finanzas", texto: "Resumen", Icono: LayoutDashboard },
   { a: "/finanzas/analitica", texto: "Analítica", Icono: ChartNoAxesCombined },
   { a: "/finanzas/movimientos", texto: "Movimientos", Icono: ArrowLeftRight },
@@ -61,6 +66,13 @@ const MENU = [
   { a: "/finanzas/presupuesto", texto: "Presupuesto", Icono: Wallet },
   { a: "/finanzas/deudas", texto: "Deudas", Icono: Landmark },
   { a: "/finanzas/ajustes", texto: "Ajustes", Icono: Settings },
+];
+
+const MENU_INFRAESTRUCTURA = [
+  { a: "/infraestructura", texto: "Estado general", Icono: ServerCog },
+  { a: "/infraestructura/invitados", texto: "CT y VMs", Icono: Boxes },
+  { a: "/infraestructura/almacenamiento", texto: "Almacenamiento", Icono: Database },
+  { a: "/infraestructura/actividad", texto: "Actividad", Icono: Activity },
 ];
 
 const RUTAS_ANTERIORES = [
@@ -121,6 +133,38 @@ function Vistas() {
         <Route path="/finanzas/presupuesto" element={<Presupuesto />} />
         <Route path="/finanzas/deudas" element={<Deudas />} />
         <Route path="/finanzas/ajustes" element={<Ajustes />} />
+        <Route
+          path="/infraestructura"
+          element={
+            <Suspense fallback={<Cargando texto="Abriendo infraestructura" />}>
+              <Infraestructura vista="resumen" />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/infraestructura/invitados"
+          element={
+            <Suspense fallback={<Cargando texto="Cargando inventario" />}>
+              <Infraestructura vista="invitados" />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/infraestructura/almacenamiento"
+          element={
+            <Suspense fallback={<Cargando texto="Leyendo almacenamiento" />}>
+              <Infraestructura vista="almacenamiento" />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/infraestructura/actividad"
+          element={
+            <Suspense fallback={<Cargando texto="Leyendo actividad" />}>
+              <Infraestructura vista="actividad" />
+            </Suspense>
+          }
+        />
         {RUTAS_ANTERIORES.map(([anterior, nueva]) => (
           <Route key={anterior} path={anterior} element={<Navigate to={nueva} replace />} />
         ))}
@@ -158,8 +202,11 @@ export default function App() {
     );
   }
 
+  const esInfraestructura = ubicacion.pathname.startsWith("/infraestructura");
+  const menu = esInfraestructura ? MENU_INFRAESTRUCTURA : MENU_FINANZAS;
+
   return (
-    <div className="app">
+    <div className={`app ${esInfraestructura ? "app--infra" : ""}`}>
       {/* Retícula de fondo, la misma del sitio público. */}
       <div className="reticula" aria-hidden="true">
         {Array.from({ length: 8 }, (_, i) => (
@@ -170,7 +217,7 @@ export default function App() {
       <nav className="lateral">
         <div className="marca">
           <Logo />
-          <span className="marca__sub">Finanzas</span>
+          <span className="marca__sub">{esInfraestructura ? "Infraestructura" : "Finanzas"}</span>
         </div>
 
         <Link to="/" className="selector-portales-trigger">
@@ -179,11 +226,11 @@ export default function App() {
           <span aria-hidden="true">↗</span>
         </Link>
 
-        {MENU.map((opcion) => (
+        {menu.map((opcion) => (
           <NavLink
             key={opcion.a}
             to={opcion.a}
-            end={opcion.a === "/finanzas"}
+            end={opcion.a === "/finanzas" || opcion.a === "/infraestructura"}
             className={({ isActive }) => `nav-enlace ${isActive ? "activo" : ""}`}
           >
             <opcion.Icono size={14} />

@@ -22,6 +22,7 @@ import categoryRuleRoutes from "./routes/categoryRules.js";
 import debtRoutes from "./routes/debts.js";
 import exportRoutes from "./routes/export.js";
 import movementRoutes from "./routes/movements.js";
+import proxmoxRoutes from "./routes/proxmox.js";
 import rateRoutes from "./routes/rates.js";
 import reportRoutes from "./routes/reports.js";
 import statementRoutes from "./routes/statements.js";
@@ -104,6 +105,7 @@ export async function buildApp({ logger = true } = {}) {
   await app.register(statementRoutes);
   await app.register(budgetRoutes);
   await app.register(debtRoutes);
+  await app.register(proxmoxRoutes);
   await app.register(exportRoutes);
 
   app.get("/api/salud", async () => {

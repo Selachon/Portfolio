@@ -9,7 +9,13 @@ import { resolveSession } from "./sessions.js";
 import { forbidden, unauthorized } from "../http/errors.js";
 
 // Únicas rutas de la API que se pueden tocar sin sesión.
-const RUTAS_PUBLICAS = new Set(["/api/salud", "/api/sesion/entrar", "/api/sesion/estado"]);
+const RUTAS_PUBLICAS = new Set([
+  "/api/salud",
+  "/api/sesion/entrar",
+  "/api/sesion/estado",
+  // Esta ruta aplica su propia autenticación de máquina con un secreto largo.
+  "/api/infraestructura/ingesta",
+]);
 
 function esRutaPublica(url) {
   const ruta = url.split("?")[0];

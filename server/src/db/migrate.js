@@ -27,6 +27,18 @@ const DEFINITIONS = [
   ["audit_log", { entity: 1, entity_id: 1 }, { name: "audit_entity" }],
   ["fx_rates", { fecha: 1, base: 1, cotizada: 1 }, { unique: true, name: "fx_rates_unique" }],
   ["fx_rates", { fecha: -1 }, { name: "fx_rates_date" }],
+  ["proxmox_state", { agent_id: 1 }, { unique: true, name: "proxmox_state_agent_unique" }],
+  ["proxmox_samples", { agent_id: 1, captured_at: -1 }, { name: "proxmox_samples_agent_date" }],
+  ["proxmox_samples", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_samples_ttl" }],
+  ["proxmox_rollups", { agent_id: 1, bucket_at: 1 }, { unique: true, name: "proxmox_rollups_bucket_unique" }],
+  ["proxmox_rollups", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_rollups_ttl" }],
+  ["proxmox_hourly", { agent_id: 1, bucket_at: 1 }, { unique: true, name: "proxmox_hourly_bucket_unique" }],
+  ["proxmox_hourly", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_hourly_ttl" }],
+  ["proxmox_daily", { agent_id: 1, bucket_at: 1 }, { unique: true, name: "proxmox_daily_bucket_unique" }],
+  ["proxmox_daily", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_daily_ttl" }],
+  ["proxmox_events", { agent_id: 1, at: -1 }, { name: "proxmox_events_agent_date" }],
+  ["proxmox_events", { event_key: 1 }, { unique: true, sparse: true, name: "proxmox_events_key_unique" }],
+  ["proxmox_events", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_events_ttl" }],
 ];
 
 export async function runMigrations({ log = console.log } = {}) {

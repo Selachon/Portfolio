@@ -11,6 +11,7 @@ process.env.MONGODB_URI = mongo.getUri();
 process.env.MONGODB_DATABASE = "kora_test";
 process.env.PASSWORD_COST_LOG2 = "12";
 process.env.SESSION_SECURE_COOKIE = "false";
+process.env.PROXMOX_INGEST_TOKEN = "token-de-prueba-proxmox-32-caracteres-seguro";
 
 const { buildApp } = await import("../src/app.js");
 const { clearDatabase, closeDb, collection, createDocument, initDb } = await import("../src/db/index.js");
