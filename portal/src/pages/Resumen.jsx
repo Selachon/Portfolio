@@ -134,7 +134,12 @@ export default function Resumen() {
               />
             </div>
             <p className="tenue" style={{ marginTop: 8 }}>
-              {deudas.resumen.cuotasPendientes} cuota(s) por pagar.
+              {deudas.resumen.activas} deuda(s) activas
+              {/* Las deudas de abono libre no tienen cuotas, así que el conteo
+                  solo se menciona cuando de verdad hay alguna pactada. */}
+              {deudas.resumen.cuotasPendientes > 0 &&
+                ` · ${deudas.resumen.cuotasPendientes} cuota(s) por pagar`}
+              .
             </p>
           </Panel>
         )}

@@ -23,6 +23,8 @@ const DEFINITIONS = [
   ["category_rules", { priority: 1, id: 1 }, { name: "category_rules_priority" }],
   ["reports", { period_year: 1, period_month: 1, currency: 1 }, { unique: true, name: "reports_period_unique" }],
   ["budget_periods", { budget_item_id: 1, period_year: 1, period_month: 1 }, { unique: true, name: "budget_periods_unique" }],
+  ["debts", { active: -1, concept: 1 }, { name: "debts_active_concept" }],
+  ["debt_payments", { debt_id: 1, paid_on: -1 }, { name: "debt_payments_debt_date" }],
   ["audit_log", { at: -1 }, { name: "audit_date" }],
   ["audit_log", { entity: 1, entity_id: 1 }, { name: "audit_entity" }],
   ["fx_rates", { fecha: 1, base: 1, cotizada: 1 }, { unique: true, name: "fx_rates_unique" }],
@@ -41,10 +43,47 @@ const DEFINITIONS = [
   ["proxmox_events", { expires_at: 1 }, { expireAfterSeconds: 0, name: "proxmox_events_ttl" }],
 ];
 
+/**
+ * Pone al día las deudas creadas antes de que existieran los abonos libres.
+ *
+ * Aquellas solo guardaban cuántas cuotas iban pagadas y deducían el saldo por
+ * regla de tres. Ahora manda `paid_cents`, así que se rellena con lo que ya
+ * estaba implícito —capital menos saldo— y la cifra en pantalla no se mueve ni
+ * un centavo. Es idempotente: solo toca los documentos a los que les falta.
+ */
+async function adaptarDeudasAntiguas() {
+  const debts = collection("debts");
+  const pendientes = await debts.find({ kind: { $exists: false } }).toArray();
+
+  for (const debt of pendientes) {
+    const principal = Number(debt.principal_cents ?? 0);
+    const restante = Number(debt.remaining_cents ?? principal);
+    const abonado = Math.max(0, principal - restante);
+
+    await debts.updateOne(
+      { id: debt.id },
+      {
+        $set: {
+          kind: "cuotas",
+          paid_cents: abonado,
+          remaining_cents: Math.max(0, principal - abonado),
+          settled_at: restante === 0 ? (debt.settled_at ?? debt.updated_at ?? new Date()) : null,
+        },
+      },
+    );
+  }
+
+  return pendientes.length;
+}
+
 export async function runMigrations({ log = console.log } = {}) {
   for (const [name, keys, options] of DEFINITIONS) {
     await collection(name).raw.createIndex(keys, options);
   }
+
+  const adaptadas = await adaptarDeudasAntiguas();
+  if (adaptadas > 0) log(`✓ ${adaptadas} deuda(s) adaptadas al historial de abonos.`);
+
   log(`MongoDB preparado: ${DEFINITIONS.length} índices verificados.`);
   return DEFINITIONS.length;
 }

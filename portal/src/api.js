@@ -70,7 +70,15 @@ const FORMATO = {
 /** Centavos → texto de dinero. Nunca se hacen cuentas con el resultado. */
 export function dinero(centavos, moneda = "COP") {
   if (centavos === null || centavos === undefined) return "—";
-  return (FORMATO[moneda] ?? FORMATO.COP).format(Number(centavos) / 100);
+
+  // Varias pantallas muestran un saldo negado (`-restante`) para pintarlo en
+  // rojo. Cuando ese saldo llega a cero el resultado es -0, y el formateador lo
+  // imprime como "-$ 0": una deuda saldada no puede verse como si debiera algo.
+  // Se normaliza SOLO el cero con signo: un valor corrupto debe seguir
+  // viéndose corrupto en pantalla en vez de disfrazarse de cero.
+  const valor = Number(centavos) / 100;
+
+  return (FORMATO[moneda] ?? FORMATO.COP).format(valor === 0 ? 0 : valor);
 }
 
 export function fechaLegible(iso) {
