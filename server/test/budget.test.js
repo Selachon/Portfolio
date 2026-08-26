@@ -223,3 +223,126 @@ describe("deudas y deudores", () => {
     assert.equal(lista.json().resumen.pendienteCentavos, 20_000_000, "lo cobrado ya no cuenta");
   });
 });
+
+describe("editar el presupuesto", () => {
+  let app;
+  let cookie;
+  let conceptoId;
+
+  before(async () => {
+    app = await crearApp();
+    await crearUsuario({ email: "duena@kora.test", role: "owner" });
+    await crearUsuario({ email: "asesor@kora.test", role: "advisor" });
+    cookie = (await iniciarSesion(app, "duena@kora.test")).cookie;
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/api/presupuesto",
+      headers: { cookie },
+      payload: {
+        concepto: "Suscripción de ejemplo",
+        dia: 14,
+        importe: "99900",
+        frecuencia: "mensual",
+        tipo: "gasto",
+        pago: "automatico",
+      },
+    });
+    conceptoId = res.json().concepto.id;
+  });
+
+  after(async () => {
+    await cerrarApp(app);
+  });
+
+  const pedir = (method, url, payload) =>
+    app.inject({ method, url, headers: { cookie }, ...(payload ? { payload } : {}) });
+
+  it("cambia el nombre y el importe cuando suben el precio", async () => {
+    const res = await pedir("PATCH", `/api/presupuesto/${conceptoId}`, {
+      concepto: "Suscripción de ejemplo (plan nuevo)",
+      importe: "129900",
+    });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().concepto.concepto, "Suscripción de ejemplo (plan nuevo)");
+    assert.equal(res.json().concepto.centavos, 12_990_000);
+  });
+
+  it("permite quitarle el día a un concepto que deja de tener fecha fija", async () => {
+    const res = await pedir("PATCH", `/api/presupuesto/${conceptoId}`, { dia: null });
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.json().concepto.dia, null);
+  });
+
+  it("rechaza un importe o una frecuencia que no valen", async () => {
+    for (const payload of [{ importe: "-100" }, { importe: "0" }, { frecuencia: "cada rato" }]) {
+      const res = await pedir("PATCH", `/api/presupuesto/${conceptoId}`, payload);
+      assert.equal(res.statusCode, 400, `debería rechazar ${JSON.stringify(payload)}`);
+    }
+  });
+
+  it("retirar un concepto lo saca del mes pero no lo pierde", async () => {
+    const retirar = await pedir("PATCH", `/api/presupuesto/${conceptoId}`, { activo: false });
+    assert.equal(retirar.json().concepto.activo, false);
+
+    const mes = await pedir("GET", "/api/presupuesto?anio=2026&mes=8");
+    assert.ok(
+      !mes.json().conceptos.some((c) => c.id === conceptoId),
+      "ya no cuenta en el plan del mes",
+    );
+
+    const conRetirados = await pedir("GET", "/api/presupuesto?anio=2026&mes=8&retirados=1");
+    assert.ok(
+      conRetirados.json().retirados.some((c) => c.id === conceptoId),
+      "pero sigue estando para poder recuperarlo",
+    );
+  });
+
+  it("un concepto retirado se puede volver a activar", async () => {
+    const res = await pedir("PATCH", `/api/presupuesto/${conceptoId}`, { activo: true });
+    assert.equal(res.json().concepto.activo, true);
+
+    const mes = await pedir("GET", "/api/presupuesto?anio=2026&mes=8");
+    assert.ok(mes.json().conceptos.some((c) => c.id === conceptoId));
+  });
+
+  it("los retirados no suman en el plan del mes", async () => {
+    const antes = await pedir("GET", "/api/presupuesto?anio=2026&mes=8");
+    const planAntes = antes.json().resumen.gastosPlaneados;
+
+    await pedir("PATCH", `/api/presupuesto/${conceptoId}`, { activo: false });
+
+    const despues = await pedir("GET", "/api/presupuesto?anio=2026&mes=8&retirados=1");
+    assert.equal(despues.json().resumen.gastosPlaneados, planAntes - 12_990_000);
+  });
+
+  it("el asesor puede corregir pero no borrar", async () => {
+    const cookieAsesor = (await iniciarSesion(app, "asesor@kora.test")).cookie;
+
+    const corregir = await app.inject({
+      method: "PATCH",
+      url: `/api/presupuesto/${conceptoId}`,
+      headers: { cookie: cookieAsesor },
+      payload: { notas: "Revisado con Sela" },
+    });
+    assert.equal(corregir.statusCode, 200);
+
+    const borrar = await app.inject({
+      method: "DELETE",
+      url: `/api/presupuesto/${conceptoId}`,
+      headers: { cookie: cookieAsesor },
+    });
+    assert.equal(borrar.statusCode, 403);
+  });
+
+  it("deja constancia de qué cambió", async () => {
+    const res = await pedir("GET", "/api/auditoria?limite=50");
+    const evento = res.json().eventos.find((e) => e.accion === "presupuesto.actualizado");
+
+    assert.ok(evento, "la edición queda auditada");
+    assert.ok(Array.isArray(evento.detalles.campos));
+    assert.ok(evento.detalles.antes, "guarda cómo estaba antes");
+  });
+});

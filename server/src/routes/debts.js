@@ -1,18 +1,25 @@
-// Deudas propias (por cuotas o de abono libre) y cantidades pendientes de cobro.
+// Deudas propias: por cuotas pactadas o de abono libre.
 
 import { audit } from "../audit.js";
-import { collection, createDocument, transaction } from "../db/index.js";
+import { collection, createDocument } from "../db/index.js";
 import { badRequest, conflict, notFound } from "../http/errors.js";
 import { requireRole } from "../auth/guard.js";
 import { parseAmountToCents } from "../domain/money.js";
-import { parseSpanishDate } from "../domain/dates.js";
-import { TIPOS, resumirDeuda, saldoPendiente, validarAbono } from "../domain/debts.js";
+import { TIPOS, saldoPendiente, validarDia } from "../domain/saldos.js";
+import {
+  DEUDAS,
+  abonoPublico,
+  deshacerAbono,
+  estadoSaldo,
+  fechaDeAbono,
+  registrarAbono,
+  resumir,
+} from "../repos/saldos.js";
 
-const ESTADOS_COBRO = new Set(["pendiente", "cobrado", "perdonado"]);
 const MONEDAS = new Set(["COP", "USD"]);
 
 function deudaPublica(fila, abonos) {
-  const calculado = resumirDeuda(fila);
+  const calculado = resumir(DEUDAS, fila);
 
   return {
     id: fila.id,
@@ -37,51 +44,9 @@ function deudaPublica(fila, abonos) {
   };
 }
 
-function abonoPublico(fila) {
-  return {
-    id: fila.id,
-    centavos: Number(fila.amount_cents),
-    fecha: fila.paid_on,
-    notas: fila.notes,
-    cuentaCuota: fila.counts_installment === true,
-    registradoEn: fila.created_at,
-  };
-}
-
-function deudorPublico(fila) {
-  return {
-    id: fila.id,
-    deudor: fila.debtor,
-    centavos: Number(fila.amount_cents),
-    moneda: fila.currency,
-    dia: fila.day_of_month,
-    notas: fila.notes,
-    estado: fila.status,
-  };
-}
-
-function validarDia(dia) {
-  if (dia === undefined || dia === null || dia === "") return null;
-  const value = Number(dia);
-  return Number.isInteger(value) && value >= 1 && value <= 31 ? value : undefined;
-}
-
-/** Campos que cambian cuando se mueve lo abonado. */
-function estadoSaldo(fila, paidCents) {
-  const restante = saldoPendiente({ principalCents: Number(fila.principal_cents), paidCents });
-
-  return {
-    paid_cents: paidCents,
-    remaining_cents: restante,
-    settled_at: restante === 0 ? (fila.settled_at ?? new Date()) : null,
-    updated_at: new Date(),
-  };
-}
-
 export default async function debtRoutes(app) {
   const debts = collection("debts");
   const debtPayments = collection("debt_payments");
-  const receivables = collection("receivables");
 
   app.get("/api/deudas", async () => {
     const rows = await debts.find({}).sort({ active: -1, concept: 1 }).toArray();
@@ -91,7 +56,7 @@ export default async function debtRoutes(app) {
     return {
       deudas: rows.map((row) => deudaPublica(row)),
       resumen: {
-        restanteCentavos: activas.reduce((total, row) => total + resumirDeuda(row).restanteCentavos, 0),
+        restanteCentavos: activas.reduce((total, row) => total + resumir(DEUDAS, row).restanteCentavos, 0),
         capitalCentavos: activas.reduce((total, row) => total + Number(row.principal_cents), 0),
         abonadoCentavos: activas.reduce((total, row) => total + Number(row.paid_cents ?? 0), 0),
         cuotasPendientes: porCuotas.reduce(
@@ -99,7 +64,7 @@ export default async function debtRoutes(app) {
           0,
         ),
         activas: activas.length,
-        saldadas: rows.filter((row) => resumirDeuda(row).saldada).length,
+        saldadas: rows.filter((row) => resumir(DEUDAS, row).saldada).length,
       },
     };
   });
@@ -241,7 +206,7 @@ export default async function debtRoutes(app) {
 
     if (paidCents > centavos) throw badRequest("Lo abonado no puede superar el capital de la deuda.");
 
-    Object.assign(cambios, estadoSaldo({ ...debt, principal_cents: centavos }, paidCents));
+    Object.assign(cambios, estadoSaldo(DEUDAS, { ...debt, principal_cents: centavos }, paidCents));
 
     if (concepto !== undefined) cambios.concept = String(concepto).trim();
     if (dia !== undefined) cambios.day_of_month = day;
@@ -267,88 +232,6 @@ export default async function debtRoutes(app) {
   // ── Abonos ───────────────────────────────────────────────────────────────
 
   /**
-   * Registra un abono contra una deuda y deja el saldo cuadrado.
-   *
-   * Vive aquí y no en cada ruta porque el abono libre y el atajo de "pagué la
-   * cuota" son lo mismo con distinto importe: si se duplicara, una de las dos
-   * acabaría olvidándose de tocar el contador de cuotas o la fecha de saldo.
-   */
-  async function registrarAbono(request, debt, { centavos, fecha, notas, cuentaCuota }) {
-    const saldoActual = resumirDeuda(debt).restanteCentavos;
-    const problema = validarAbono({ amountCents: centavos ?? 0, saldoActual });
-    if (problema) throw badRequest(problema);
-
-    const paidOn = fecha ? parseSpanishDate(fecha) : new Date().toISOString().slice(0, 10);
-    if (!paidOn) throw badRequest("La fecha del abono no es válida.");
-
-    // Solo las deudas por cuotas pueden marcar un abono como cuota cubierta.
-    const cuentaComoCuota =
-      debt.kind === "cuotas" &&
-      cuentaCuota !== false &&
-      debt.installments_paid < debt.installments_total;
-
-    const resultado = await transaction(async ({ collection: coleccion }) => {
-      const deudasTx = coleccion("debts");
-      const abonosTx = coleccion("debt_payments");
-
-      // Se relee dentro de la transacción y la escritura se condiciona a que lo
-      // abonado no haya cambiado: dos personas registrando a la vez no pueden
-      // pasarse del saldo.
-      const actual = await deudasTx.findOne({ id: debt.id });
-      const abonadoAntes = Number(actual.paid_cents ?? 0);
-      const saldoAhora = saldoPendiente({
-        principalCents: Number(actual.principal_cents),
-        paidCents: abonadoAntes,
-      });
-
-      const conflicto = validarAbono({ amountCents: centavos, saldoActual: saldoAhora });
-      if (conflicto) return { conflicto };
-
-      const abono = createDocument({
-        debt_id: actual.id,
-        amount_cents: centavos,
-        paid_on: paidOn,
-        notes: notas ?? null,
-        counts_installment: cuentaComoCuota,
-        created_by: request.user?.id ?? null,
-      });
-
-      await abonosTx.insertOne(abono);
-
-      const cambios = estadoSaldo(actual, abonadoAntes + centavos);
-      if (cuentaComoCuota) cambios.installments_paid = actual.installments_paid + 1;
-
-      const escrito = await deudasTx.findOneAndUpdate(
-        { id: actual.id, paid_cents: abonadoAntes },
-        { $set: cambios },
-        { returnDocument: "after" },
-      );
-
-      if (!escrito) {
-        return { conflicto: "La deuda cambió mientras registrabas el abono. Inténtalo otra vez." };
-      }
-      return { deuda: escrito, abono };
-    });
-
-    if (resultado.conflicto) throw conflict(resultado.conflicto);
-
-    await audit(request, {
-      action: "deuda.abono-registrado",
-      entity: "debt",
-      entityId: debt.id,
-      meta: {
-        concepto: debt.concept,
-        importe: centavos,
-        fecha: paidOn,
-        cuota: cuentaComoCuota,
-      },
-    });
-
-    return { deuda: deudaPublica(resultado.deuda), abono: abonoPublico(resultado.abono) };
-  }
-
-
-  /**
    * Registra un abono de cualquier importe. Es el camino normal para las deudas
    * sin cuota fija, y también sirve en las de cuotas cuando se paga distinto de
    * lo pactado.
@@ -359,7 +242,7 @@ export default async function debtRoutes(app) {
     const debt = await debts.findOne({ id: request.params.id });
     if (!debt) throw notFound("Esa deuda no existe.");
 
-    return registrarAbono(request, debt, {
+    return anotarAbono(request, debt, {
       centavos: parseAmountToCents(importe),
       fecha,
       notas,
@@ -378,22 +261,7 @@ export default async function debtRoutes(app) {
     const abono = await debtPayments.findOne({ id: request.params.abonoId, debt_id: debt.id });
     if (!abono) throw notFound("Ese abono no existe.");
 
-    const resultado = await transaction(async ({ collection: coleccion }) => {
-      const deudasTx = coleccion("debts");
-      const abonosTx = coleccion("debt_payments");
-
-      const borrado = await abonosTx.deleteOne({ id: abono.id });
-      if (borrado.deletedCount === 0) return { conflicto: "Ese abono ya se había deshecho." };
-
-      const actual = await deudasTx.findOne({ id: debt.id });
-      const cambios = estadoSaldo(actual, Math.max(0, Number(actual.paid_cents ?? 0) - Number(abono.amount_cents)));
-      if (abono.counts_installment) {
-        cambios.installments_paid = Math.max(0, actual.installments_paid - 1);
-      }
-
-      return { deuda: await deudasTx.findOneAndUpdate({ id: debt.id }, { $set: cambios }, { returnDocument: "after" }) };
-    });
-
+    const resultado = await deshacerAbono(DEUDAS, debt, abono);
     if (resultado.conflicto) throw conflict(resultado.conflicto);
 
     await audit(request, {
@@ -403,7 +271,7 @@ export default async function debtRoutes(app) {
       meta: { concepto: debt.concept, importe: Number(abono.amount_cents), fecha: abono.paid_on },
     });
 
-    return { deuda: deudaPublica(resultado.deuda) };
+    return { deuda: deudaPublica(resultado.saldo) };
   });
 
   /**
@@ -419,10 +287,10 @@ export default async function debtRoutes(app) {
     }
     if (debt.installments_paid >= debt.installments_total) throw badRequest("Esa deuda ya está saldada.");
 
-    const { cuotaSugeridaCentavos } = resumirDeuda(debt);
+    const { cuotaSugeridaCentavos } = resumir(DEUDAS, debt);
     if (!cuotaSugeridaCentavos) throw badRequest("Esa deuda ya está saldada.");
 
-    return registrarAbono(request, debt, {
+    return anotarAbono(request, debt, {
       centavos: cuotaSugeridaCentavos,
       notas: null,
       cuentaCuota: true,
@@ -446,76 +314,33 @@ export default async function debtRoutes(app) {
     return { ok: true };
   });
 
-  // ── Lo que te deben ──────────────────────────────────────────────────────
+  async function anotarAbono(request, debt, { centavos, fecha, notas, cuentaCuota }) {
+    const paidOn = fechaDeAbono(fecha);
+    if (!paidOn) throw badRequest("La fecha del abono no es válida.");
 
-  app.get("/api/deudores", async () => {
-    const rows = await receivables.find({}).sort({ status: 1, debtor: 1 }).toArray();
-    rows.sort(
-      (a, b) =>
-        (a.status === "pendiente" ? -1 : 1) - (b.status === "pendiente" ? -1 : 1) ||
-        a.debtor.localeCompare(b.debtor),
-    );
-
-    return {
-      deudores: rows.map(deudorPublico),
-      resumen: {
-        pendienteCentavos: rows
-          .filter((row) => row.status === "pendiente")
-          .reduce((total, row) => total + Number(row.amount_cents), 0),
-      },
-    };
-  });
-
-  app.post("/api/deudores", async (request) => {
-    const { deudor, importe, moneda = "COP", dia, notas } = request.body ?? {};
-    const centavos = parseAmountToCents(importe);
-    const currency = String(moneda).toUpperCase();
-    const day = validarDia(dia);
-    if (!String(deudor ?? "").trim()) throw badRequest("Falta el nombre de quien debe.");
-    if (centavos === null || centavos <= 0) throw badRequest("El importe debe ser positivo.");
-    if (!MONEDAS.has(currency)) throw badRequest("La moneda debe ser COP o USD.");
-    if (day === undefined) throw badRequest("El día debe estar entre 1 y 31.");
-
-    const receivable = createDocument({
-      debtor: String(deudor).trim(),
-      amount_cents: centavos,
-      currency,
-      day_of_month: day,
-      notes: notas ?? null,
-      status: "pendiente",
+    const resultado = await registrarAbono(DEUDAS, debt, {
+      centavos,
+      fecha: paidOn,
+      notas,
+      cuentaCuota,
+      usuarioId: request.user?.id,
     });
-    await receivables.insertOne(receivable);
-    await audit(request, { action: "deudor.creado", entity: "receivable", entityId: receivable.id, meta: { deudor } });
-    return { deudor: deudorPublico(receivable) };
-  });
 
-  app.patch("/api/deudores/:id", async (request) => {
-    const { deudor, importe, dia, notas, estado } = request.body ?? {};
-    const row = await receivables.findOne({ id: request.params.id });
-    if (!row) throw notFound("Ese registro no existe.");
-    if (estado !== undefined && !ESTADOS_COBRO.has(estado)) {
-      throw badRequest("El estado debe ser pendiente, cobrado o perdonado.");
-    }
-    const centavos = importe === undefined ? row.amount_cents : parseAmountToCents(importe);
-    const day = dia === undefined ? row.day_of_month : validarDia(dia);
-    if (centavos === null || centavos <= 0) throw badRequest("El importe debe ser positivo.");
-    if (day === undefined) throw badRequest("El día debe estar entre 1 y 31.");
+    if (resultado.problema) throw badRequest(resultado.problema);
+    if (resultado.conflicto) throw conflict(resultado.conflicto);
 
-    const cambios = { amount_cents: centavos, updated_at: new Date() };
-    if (deudor !== undefined) cambios.debtor = String(deudor).trim();
-    if (dia !== undefined) cambios.day_of_month = day;
-    if (notas !== undefined) cambios.notes = String(notas) || null;
-    if (estado !== undefined) cambios.status = estado;
-    const updated = await receivables.findOneAndUpdate({ id: row.id }, { $set: cambios }, { returnDocument: "after" });
-    await audit(request, { action: "deudor.actualizado", entity: "receivable", entityId: row.id, meta: { estado } });
-    return { deudor: deudorPublico(updated) };
-  });
+    await audit(request, {
+      action: "deuda.abono-registrado",
+      entity: "debt",
+      entityId: debt.id,
+      meta: {
+        concepto: debt.concept,
+        importe: centavos,
+        fecha: paidOn,
+        cuota: resultado.cuentaComoCuota,
+      },
+    });
 
-  app.delete("/api/deudores/:id", { preHandler: requireRole("owner") }, async (request) => {
-    const row = await receivables.findOne({ id: request.params.id });
-    if (!row) throw notFound("Ese registro no existe.");
-    await receivables.deleteOne({ id: row.id });
-    await audit(request, { action: "deudor.borrado", entity: "receivable", entityId: row.id, meta: { deudor: row.debtor } });
-    return { ok: true };
-  });
+    return { deuda: deudaPublica(resultado.saldo), abono: abonoPublico(resultado.abono) };
+  }
 }

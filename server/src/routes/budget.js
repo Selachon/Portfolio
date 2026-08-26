@@ -66,7 +66,13 @@ export default async function budgetRoutes(app) {
 
   app.get("/api/presupuesto", async (request) => {
     const periodo = normalizarPeriodo(request.query?.anio, request.query?.mes);
-    const rows = await items.find({ active: true }).sort({ day_of_month: 1, concept: 1 }).toArray();
+
+    // Los conceptos retirados se ocultan por defecto, pero hay que poder verlos
+    // para reactivarlos: si no, desactivar uno equivaldría a perderlo.
+    const incluirRetirados = request.query?.retirados === "1";
+    const filtro = incluirRetirados ? {} : { active: true };
+
+    const rows = await items.find(filtro).sort({ day_of_month: 1, concept: 1 }).toArray();
     if (!periodo) return { conceptos: rows.map(conceptoPublico) };
 
     const ids = rows.map((row) => row.id);
@@ -79,7 +85,7 @@ export default async function budgetRoutes(app) {
       : [];
     const porId = new Map(estados.map((row) => [row.budget_item_id, row]));
     const delMes = rows
-      .filter((row) => tocaEsteMes(row, periodo.anio, periodo.mes))
+      .filter((row) => row.active && tocaEsteMes(row, periodo.anio, periodo.mes))
       .map((row) => {
         const estado = porId.get(row.id);
         return {
@@ -94,9 +100,13 @@ export default async function budgetRoutes(app) {
       .reduce((total, row) => total + Number(row.centavos_mes ?? row.amount_cents), 0);
     const pendientes = delMes.filter((row) => row.estado === "pendiente");
 
+    const retirados = incluirRetirados ? rows.filter((row) => !row.active) : [];
+
     return {
       periodo,
       conceptos: delMes.map(conceptoPublico),
+      // Van aparte para que no se mezclen con el plan del mes en curso.
+      retirados: retirados.map(conceptoPublico),
       resumen: {
         gastosPlaneados: suma("gasto"),
         ingresosPlaneados: suma("ingreso"),
@@ -137,7 +147,9 @@ export default async function budgetRoutes(app) {
 
     const cambios = { updated_at: new Date() };
     if (cuerpo.concepto !== undefined) cambios.concept = String(cuerpo.concepto).trim();
-    if (cuerpo.dia !== undefined && cuerpo.dia !== null) cambios.day_of_month = cuerpo.dia;
+    // Se acepta null para quitar el día: hay conceptos que dejan de tener fecha
+    // fija y antes no había manera de borrársela.
+    if (cuerpo.dia !== undefined) cambios.day_of_month = cuerpo.dia === null || cuerpo.dia === "" ? null : cuerpo.dia;
     if (cuerpo.importe !== undefined) cambios.amount_cents = parseAmountToCents(cuerpo.importe);
     if (cuerpo.frecuencia !== undefined) cambios.frequency = cuerpo.frecuencia;
     if (cuerpo.tipo !== undefined) cambios.kind = cuerpo.tipo;
@@ -146,7 +158,17 @@ export default async function budgetRoutes(app) {
     if (cuerpo.activo !== undefined) cambios.active = Boolean(cuerpo.activo);
 
     const updated = await items.findOneAndUpdate({ id: item.id }, { $set: cambios }, { returnDocument: "after" });
-    await audit(request, { action: "presupuesto.actualizado", entity: "budget_item", entityId: item.id });
+    await audit(request, {
+      action: "presupuesto.actualizado",
+      entity: "budget_item",
+      entityId: item.id,
+      // Se guarda qué cambió: son dos personas tocando el mismo plan.
+      meta: {
+        concepto: updated.concept,
+        campos: Object.keys(cambios).filter((campo) => campo !== "updated_at"),
+        antes: { concepto: item.concept, importe: item.amount_cents, activo: item.active },
+      },
+    });
     return { concepto: conceptoPublico(updated) };
   });
 

@@ -17,7 +17,7 @@ async function documents(name, { sort = {}, projection } = {}) {
 export default async function exportRoutes(app) {
   app.get("/api/export/todo", { preHandler: requireRole("owner") }, async (request, reply) => {
     const incluirPdfs = request.query?.pdfs !== "no";
-    const [cuentas, movimientos, presupuesto, estadosPresupuesto, deudas, abonosDeudas, deudores, reportes, reglas, statementRows] =
+    const [cuentas, movimientos, presupuesto, estadosPresupuesto, deudas, abonosDeudas, deudores, abonosCobros, reportes, reglas, statementRows] =
       await Promise.all([
         documents("accounts", { sort: { name: 1 } }),
         documents("movements", { sort: { occurred_on: 1, created_at: 1 } }),
@@ -26,6 +26,7 @@ export default async function exportRoutes(app) {
         documents("debts", { sort: { concept: 1 } }),
         documents("debt_payments", { sort: { debt_id: 1, paid_on: 1 } }),
         documents("receivables", { sort: { debtor: 1 } }),
+        documents("receivable_payments", { sort: { receivable_id: 1, paid_on: 1 } }),
         documents("reports", { sort: { period_year: 1, period_month: 1 } }),
         documents("category_rules", { sort: { priority: 1 } }),
         documents("statements", {
@@ -70,6 +71,7 @@ export default async function exportRoutes(app) {
       deudas,
       abonosDeudas,
       deudores,
+      abonosCobros,
       reportes,
       reglas,
       extractos,

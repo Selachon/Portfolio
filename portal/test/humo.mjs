@@ -19,6 +19,19 @@ const BASE = process.argv[2] ?? "http://localhost:8790";
 const CORREO = process.argv[3] ?? "vista@kora.test";
 const CLAVE = process.argv[4] ?? "vista-definitiva-2026";
 
+// Abrir la pantalla no basta: un componente mal importado dentro de un modal
+// solo revienta al pulsar el botón. Cada entrada es la pantalla y el título del
+// botón que lo abre.
+const MODALES = [
+  ["/deudas", "Registrar un abono"],
+  ["/deudas", "Ver el historial de abonos"],
+  ["/deudas", "Anotar un pago que te hizo"],
+  ["/deudas", "Ver el historial de pagos"],
+  ["/presupuesto", "Editar este concepto"],
+  ["/presupuesto", "Marcar como pagado"],
+  ["/movimientos", "Editar"],
+];
+
 const RUTAS = [
   "/",
   "/analitica",
@@ -152,6 +165,48 @@ for (const ruta of RUTAS) {
   }
 }
 
+// Segunda vuelta: se abre cada modal y se comprueba que aparece sin reventar.
+for (const [ruta, titulo] of MODALES) {
+  problemas = [];
+  await enviar("Page.navigate", { url: BASE + ruta });
+  await esperar(2600);
+
+  const { result: pulsado } = await enviar("Runtime.evaluate", {
+    expression: `(() => {
+      // Unos botones se rotulan con title y otros con aria-label; valen los dos.
+      const boton = [...document.querySelectorAll("button[title], button[aria-label]")]
+        .find((b) => (b.title || b.getAttribute("aria-label") || "")
+          .startsWith(${JSON.stringify(titulo)}));
+      if (!boton) return "sin-boton";
+      boton.click();
+      return "pulsado";
+    })()`,
+    returnByValue: true,
+  });
+
+  if (pulsado?.value === "sin-boton") {
+    console.log(`· ${ruta} → "${titulo}": no hay ninguna fila con ese botón, se salta`);
+    continue;
+  }
+
+  await esperar(1200);
+
+  const { result: abierto } = await enviar("Runtime.evaluate", {
+    expression: "document.querySelector('[role=dialog]')?.innerText?.trim().length ?? 0",
+    returnByValue: true,
+  });
+
+  if ((abierto?.value ?? 0) < 20) problemas.push("el modal no llegó a abrirse");
+
+  if (problemas.length === 0) {
+    console.log(`✓ ${ruta} → "${titulo}"`);
+  } else {
+    fallaron += 1;
+    console.log(`✗ ${ruta} → "${titulo}"`);
+    for (const problema of problemas) console.log(`    ${problema}`);
+  }
+}
+
 ws.close();
 chrome.kill();
 
@@ -160,4 +215,4 @@ if (fallaron > 0) {
   process.exit(1);
 }
 
-console.log(`\n${RUTAS.length} pantallas abiertas sin errores.`);
+console.log(`\n${RUTAS.length} pantallas y ${MODALES.length} modales sin errores.`);

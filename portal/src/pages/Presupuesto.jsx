@@ -1,7 +1,7 @@
 // Presupuesto fijo: los conceptos recurrentes y su estado en cada mes.
 
 import { useState } from "react";
-import { Check, Plus, Undo2 } from "lucide-react";
+import { Archive, ArchiveRestore, Check, Pencil, Plus, Trash2, Undo2 } from "lucide-react";
 import { api, dinero, nombreMes } from "../api.js";
 import {
   Aviso,
@@ -9,27 +9,52 @@ import {
   Cargando,
   Kpi,
   MetaLinea,
+  ConfirmarBorrado,
   Modal,
   SelectorPeriodo,
   TablaVacia,
 } from "../components/comunes.jsx";
+import { useSesion } from "../sesion.js";
 import { useDatos } from "../hooks.js";
 
 export default function Presupuesto() {
   const hoy = new Date();
   const [periodo, setPeriodo] = useState({ anio: hoy.getFullYear(), mes: hoy.getMonth() + 1 });
   const [creando, setCreando] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [marcando, setMarcando] = useState(null);
+  const [borrando, setBorrando] = useState(null);
+  const [verRetirados, setVerRetirados] = useState(false);
+  const [errorAccion, setErrorAccion] = useState(null);
+  const { esPropietario } = useSesion();
 
   const { datos, error, recargar } = useDatos(
-    () => api.get(`/api/presupuesto?anio=${periodo.anio}&mes=${periodo.mes}`),
-    [periodo.anio, periodo.mes],
+    () =>
+      api.get(
+        `/api/presupuesto?anio=${periodo.anio}&mes=${periodo.mes}` +
+          (verRetirados ? "&retirados=1" : ""),
+      ),
+    [periodo.anio, periodo.mes, verRetirados],
   );
 
-  const cambiarEstado = async (concepto, estado) => {
-    await api.put(`/api/presupuesto/${concepto.id}/${periodo.anio}/${periodo.mes}`, { estado });
-    recargar();
+  const accion = async (ejecutar) => {
+    setErrorAccion(null);
+    try {
+      await ejecutar();
+      recargar();
+    } catch (fallo) {
+      setErrorAccion(fallo.message);
+    }
   };
+
+  const cambiarEstado = (concepto, estado) =>
+    accion(() =>
+      api.put(`/api/presupuesto/${concepto.id}/${periodo.anio}/${periodo.mes}`, { estado }),
+    );
+
+  // Retirar no borra: el concepto sale del plan del mes pero se puede recuperar.
+  const cambiarActivo = (concepto, activo) =>
+    accion(() => api.patch(`/api/presupuesto/${concepto.id}`, { activo }));
 
   return (
     <>
@@ -58,7 +83,7 @@ export default function Presupuesto() {
         </div>
       </div>
 
-      {error && <Aviso tipo="error">{error}</Aviso>}
+      {(error || errorAccion) && <Aviso tipo="error">{error ?? errorAccion}</Aviso>}
 
       {datos?.resumen && (
         <div className="rejilla aparece" style={{ marginBottom: 18 }}>
@@ -139,6 +164,20 @@ export default function Presupuesto() {
                               <Check size={14} />
                             </button>
                           )}
+                          <button
+                            className="icono"
+                            title="Editar este concepto"
+                            onClick={() => setEditando(concepto)}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            className="icono"
+                            title="Retirar del presupuesto (se puede recuperar)"
+                            onClick={() => cambiarActivo(concepto, false)}
+                          >
+                            <Archive size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -150,11 +189,98 @@ export default function Presupuesto() {
         </div>
       )}
 
-      {creando && (
+      <div className="entre" style={{ marginTop: 22 }}>
+        <p className="tenue" style={{ margin: 0 }}>
+          Retirar un concepto lo saca del plan sin borrar su historial de pagos.
+        </p>
+        <button className="discreto" onClick={() => setVerRetirados((valor) => !valor)}>
+          {verRetirados ? "Ocultar retirados" : "Ver conceptos retirados"}
+        </button>
+      </div>
+
+      {verRetirados && datos && (
+        <div className="tabla-envoltura aparece" style={{ marginTop: 10 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Concepto retirado</th>
+                <th className="num">Valor</th>
+                <th>Frecuencia</th>
+                <th>Tipo</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {(datos.retirados ?? []).length === 0 ? (
+                <TablaVacia columnas={5} texto="No has retirado ningún concepto." />
+              ) : (
+                datos.retirados.map((concepto) => (
+                  <tr key={concepto.id} style={{ opacity: 0.6 }}>
+                    <td>
+                      {concepto.concepto}
+                      {concepto.notas && <div className="tenue">{concepto.notas}</div>}
+                    </td>
+                    <td className="num">{dinero(concepto.centavos, concepto.moneda)}</td>
+                    <td className="tenue">{concepto.frecuencia}</td>
+                    <td className="tenue">{concepto.tipo}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 2 }}>
+                        <button
+                          className="icono"
+                          title="Devolverlo al presupuesto"
+                          onClick={() => cambiarActivo(concepto, true)}
+                        >
+                          <ArchiveRestore size={14} />
+                        </button>
+                        <button
+                          className="icono"
+                          title="Editar este concepto"
+                          onClick={() => setEditando(concepto)}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {esPropietario && (
+                          <button
+                            className="icono peligro"
+                            title="Borrarlo para siempre, con su historial"
+                            onClick={() => setBorrando(concepto)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {borrando && (
+        <ConfirmarBorrado
+          que={`${borrando.concepto} y todo su historial de pagos`}
+          alConfirmar={() =>
+            accion(async () => {
+              await api.delete(`/api/presupuesto/${borrando.id}`);
+              setBorrando(null);
+            })
+          }
+          alCerrar={() => setBorrando(null)}
+        />
+      )}
+
+      {(creando || editando) && (
         <FormularioConcepto
-          alCerrar={() => setCreando(false)}
+          concepto={editando}
+          alCerrar={() => {
+            setCreando(false);
+            setEditando(null);
+          }}
           alGuardar={() => {
             setCreando(false);
+            setEditando(null);
             recargar();
           }}
         />
@@ -222,34 +348,55 @@ function MarcarPagado({ concepto, periodo, alCerrar, alGuardar }) {
   );
 }
 
-function FormularioConcepto({ alCerrar, alGuardar }) {
+/** Sirve para crear y para editar: los campos son los mismos. */
+function FormularioConcepto({ concepto, alCerrar, alGuardar }) {
+  const editando = Boolean(concepto);
   const [valores, setValores] = useState({
-    concepto: "",
-    dia: "",
-    importe: "",
-    moneda: "COP",
-    frecuencia: "mensual",
-    tipo: "gasto",
-    pago: "manual",
-    notas: "",
+    concepto: concepto?.concepto ?? "",
+    dia: concepto?.dia ? String(concepto.dia) : "",
+    // Al editar se muestra el importe del PLAN, no el que se pagó este mes:
+    // son cosas distintas y confundirlas reescribiría el presupuesto.
+    importe: concepto ? String(concepto.centavos / 100) : "",
+    moneda: concepto?.moneda ?? "COP",
+    frecuencia: concepto?.frecuencia ?? "mensual",
+    tipo: concepto?.tipo ?? "gasto",
+    pago: concepto?.pago ?? "manual",
+    notas: concepto?.notas ?? "",
   });
   const [error, setError] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
   const cambiar = (campo) => (evento) =>
     setValores((previos) => ({ ...previos, [campo]: evento.target.value }));
 
   const enviar = async (evento) => {
     evento.preventDefault();
+    setError(null);
+    setEnviando(true);
+
+    // El día se manda como null cuando se vacía, para poder quitárselo a un
+    // concepto que deja de tener fecha fija.
+    const cuerpo = { ...valores, dia: valores.dia === "" ? null : valores.dia };
+
     try {
-      await api.post("/api/presupuesto", { ...valores, dia: valores.dia || null });
+      if (editando) {
+        await api.patch(`/api/presupuesto/${concepto.id}`, cuerpo);
+      } else {
+        await api.post("/api/presupuesto", cuerpo);
+      }
       alGuardar();
     } catch (fallo) {
       setError(fallo.message);
+    } finally {
+      setEnviando(false);
     }
   };
 
   return (
-    <Modal titulo="Nuevo concepto del presupuesto" alCerrar={alCerrar}>
+    <Modal
+      titulo={editando ? `Editar "${concepto.concepto}"` : "Nuevo concepto del presupuesto"}
+      alCerrar={alCerrar}
+    >
       <form onSubmit={enviar}>
         {error && <Aviso tipo="error">{error}</Aviso>}
 
@@ -301,8 +448,8 @@ function FormularioConcepto({ alCerrar, alGuardar }) {
         </Campo>
 
         <div className="acciones">
-          <button className="principal" type="submit">
-            Guardar
+          <button className="principal" type="submit" disabled={enviando}>
+            {enviando ? "Guardando…" : editando ? "Guardar cambios" : "Guardar"}
           </button>
           <button type="button" onClick={alCerrar}>
             Cancelar

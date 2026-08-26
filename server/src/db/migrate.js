@@ -25,6 +25,8 @@ const DEFINITIONS = [
   ["budget_periods", { budget_item_id: 1, period_year: 1, period_month: 1 }, { unique: true, name: "budget_periods_unique" }],
   ["debts", { active: -1, concept: 1 }, { name: "debts_active_concept" }],
   ["debt_payments", { debt_id: 1, paid_on: -1 }, { name: "debt_payments_debt_date" }],
+  ["receivables", { status: 1, debtor: 1 }, { name: "receivables_status_debtor" }],
+  ["receivable_payments", { receivable_id: 1, paid_on: -1 }, { name: "receivable_payments_date" }],
   ["audit_log", { at: -1 }, { name: "audit_date" }],
   ["audit_log", { entity: 1, entity_id: 1 }, { name: "audit_entity" }],
   ["fx_rates", { fecha: 1, base: 1, cotizada: 1 }, { unique: true, name: "fx_rates_unique" }],
@@ -76,6 +78,39 @@ async function adaptarDeudasAntiguas() {
   return pendientes.length;
 }
 
+/**
+ * Pone al día los cobros creados antes de que existieran los abonos parciales.
+ *
+ * Aquellos solo tenían un total y un estado: o entero pendiente, o entero
+ * cobrado. Se traducen a lo mismo con el modelo nuevo —cobrado equivale a
+ * haberlo recuperado todo— así que las cifras en pantalla no cambian.
+ */
+async function adaptarCobrosAntiguos() {
+  const receivables = collection("receivables");
+  const pendientes = await receivables.find({ kind: { $exists: false } }).toArray();
+
+  for (const cobro of pendientes) {
+    const total = Number(cobro.amount_cents ?? 0);
+    const recuperado = cobro.status === "cobrado" ? total : 0;
+
+    await receivables.updateOne(
+      { id: cobro.id },
+      {
+        $set: {
+          kind: "libre",
+          installments_total: 1,
+          installments_paid: 0,
+          paid_cents: recuperado,
+          remaining_cents: Math.max(0, total - recuperado),
+          settled_at: recuperado === total ? (cobro.settled_at ?? cobro.updated_at ?? new Date()) : null,
+        },
+      },
+    );
+  }
+
+  return pendientes.length;
+}
+
 export async function runMigrations({ log = console.log } = {}) {
   for (const [name, keys, options] of DEFINITIONS) {
     await collection(name).raw.createIndex(keys, options);
@@ -83,6 +118,9 @@ export async function runMigrations({ log = console.log } = {}) {
 
   const adaptadas = await adaptarDeudasAntiguas();
   if (adaptadas > 0) log(`✓ ${adaptadas} deuda(s) adaptadas al historial de abonos.`);
+
+  const cobros = await adaptarCobrosAntiguos();
+  if (cobros > 0) log(`✓ ${cobros} cobro(s) adaptados al historial de abonos.`);
 
   log(`MongoDB preparado: ${DEFINITIONS.length} índices verificados.`);
   return DEFINITIONS.length;
